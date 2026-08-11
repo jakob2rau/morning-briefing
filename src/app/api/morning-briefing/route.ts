@@ -50,9 +50,14 @@ export async function POST(request: NextRequest) {
 
 async function regenerate() {
   // Ein Cron-Aufruf hat keine Browser-Session; Kalendertermine fließen
-  // dann nur ein, wenn zufällig eine gültige Session vorliegt.
+  // dann nur ein, wenn zufällig eine gültige Session vorliegt. Diese
+  // Route ist ausschließlich über das CRON_SECRET erreichbar (Cron-Job
+  // oder manueller Trigger), daher wird hier immer eine
+  // Push-Benachrichtigung verschickt.
   const session = await auth();
-  const briefing = await generateAndStoreMorningBriefing(session?.accessToken);
+  const briefing = await generateAndStoreMorningBriefing(session?.accessToken, {
+    notify: true,
+  });
 
   if (!briefing) {
     return NextResponse.json(

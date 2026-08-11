@@ -4,6 +4,7 @@ import {
   generateAndStoreMorningBriefing,
   getStoredMorningBriefing,
 } from "@/lib/briefing";
+import PushSubscribeButton from "@/components/PushSubscribeButton";
 
 function formatTimestamp(iso: string) {
   return new Date(iso).toLocaleString("de-DE", {
@@ -118,6 +119,19 @@ export default async function Home() {
             </form>
           </div>
         )}
+      </div>
+
+      <div className="w-full max-w-xl rounded-2xl border border-zinc-200 bg-white p-6 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-800">
+        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          Benachrichtigungen
+        </p>
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+          Erhalte eine kurze Push-Benachrichtigung, sobald morgens ein neues
+          Briefing bereitsteht.
+        </p>
+        <div className="mt-3">
+          <PushSubscribeButton />
+        </div>
       </div>
     </div>
   );

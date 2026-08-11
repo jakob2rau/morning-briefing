@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getMainzWeather, type WeatherSummary } from "@/lib/weather";
 import { getAllNews } from "@/lib/news";
 import { getUpcomingEvents, type CalendarEvent } from "@/lib/calendar";
+import { sendBriefingPushNotification } from "@/lib/push";
 
 export type MorningBriefing = {
   text: string;
@@ -105,10 +106,13 @@ async function saveBriefing(briefing: MorningBriefing) {
 /**
  * Sammelt Wetter-, News- und Kalenderdaten, lässt Claude daraus einen
  * kurzen Morgen-Text formulieren und speichert das Ergebnis für die
- * spätere Anzeige.
+ * spätere Anzeige. Mit `notify: true` (z. B. im Cron-Job) wird zusätzlich
+ * eine Push-Benachrichtigung mit Teaser-Text an alle angemeldeten Geräte
+ * verschickt.
  */
 export async function generateAndStoreMorningBriefing(
   accessToken?: string,
+  options?: { notify?: boolean },
 ): Promise<MorningBriefing | null> {
   const [weather, news, events] = await Promise.all([
     getMainzWeather(),
@@ -128,6 +132,16 @@ export async function generateAndStoreMorningBriefing(
     };
 
     await saveBriefing(briefing);
+
+    if (options?.notify) {
+      try {
+        await sendBriefingPushNotification(briefing.text);
+      } catch (error) {
+        // Push-Fehler sollen das frisch erstellte Briefing nicht ungültig machen.
+        console.error("Fehler beim Versenden der Push-Benachrichtigung", error);
+      }
+    }
+
     return briefing;
   } catch (error) {
     console.error("Fehler beim Erstellen des Morgenbriefings", error);
