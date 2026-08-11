@@ -79,11 +79,11 @@ export async function getHeadlines(
   }
 }
 
-export async function getAllNews() {
+export async function getAllNews(limit = 3) {
   const results = await Promise.all(
     NEWS_SOURCES.map(async (source) => ({
       ...source,
-      headlines: await getHeadlines(source.feedUrl),
+      headlines: await getHeadlines(source.feedUrl, limit),
     })),
   );
   return results;

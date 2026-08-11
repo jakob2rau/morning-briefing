@@ -1,0 +1,65 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import {
+  generateAndStoreMorningBriefing,
+  getStoredMorningBriefing,
+} from "@/lib/briefing";
+
+// Prüft, ob die Anfrage das gültige CRON_SECRET mitbringt (Vercel hängt
+// dieses bei konfigurierten Cron-Jobs automatisch als
+// "Authorization: Bearer <CRON_SECRET>"-Header an).
+function isAuthorized(request: NextRequest) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  return request.headers.get("authorization") === `Bearer ${secret}`;
+}
+
+// GET: liefert normalerweise nur das zuletzt gespeicherte Morgenbriefing
+// (kostenlos, kein Claude-Aufruf). Trägt die Anfrage ein gültiges
+// CRON_SECRET (z. B. der tägliche Vercel-Cron-Job), wird stattdessen ein
+// neues Briefing erstellt und gespeichert - Vercel Cron Jobs rufen ihre
+// Route immer per GET auf, daher übernimmt GET hier zusätzlich die Rolle
+// des geplanten Trigger.
+export async function GET(request: NextRequest) {
+  if (isAuthorized(request)) {
+    return regenerate();
+  }
+
+  const briefing = await getStoredMorningBriefing();
+
+  if (!briefing) {
+    return NextResponse.json(
+      { error: "Noch kein Morgenbriefing vorhanden." },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json(briefing);
+}
+
+// POST: manuelles Neu-Erstellen. Erfordert ebenfalls das CRON_SECRET,
+// damit nicht irgendwer von außen die teure Claude-API-Anfrage auslösen
+// kann.
+export async function POST(request: NextRequest) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return regenerate();
+}
+
+async function regenerate() {
+  // Ein Cron-Aufruf hat keine Browser-Session; Kalendertermine fließen
+  // dann nur ein, wenn zufällig eine gültige Session vorliegt.
+  const session = await auth();
+  const briefing = await generateAndStoreMorningBriefing(session?.accessToken);
+
+  if (!briefing) {
+    return NextResponse.json(
+      { error: "Morgenbriefing konnte nicht erstellt werden." },
+      { status: 502 },
+    );
+  }
+
+  return NextResponse.json(briefing);
+}

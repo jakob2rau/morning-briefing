@@ -1,25 +1,37 @@
+import { revalidatePath } from "next/cache";
 import { auth, signIn, signOut } from "@/auth";
-import { getMainzWeather } from "@/lib/weather";
-import { getAllNews } from "@/lib/news";
-import { getUpcomingEvents } from "@/lib/calendar";
+import {
+  generateAndStoreMorningBriefing,
+  getStoredMorningBriefing,
+} from "@/lib/briefing";
 
-function formatEventTime(event: { start: string; allDay: boolean }) {
-  if (event.allDay) return "Ganztägig";
-  return new Date(event.start).toLocaleTimeString("de-DE", {
+function formatTimestamp(iso: string) {
+  return new Date(iso).toLocaleString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Europe/Berlin",
   });
 }
 
+async function regenerateBriefing() {
+  "use server";
+  const session = await auth();
+  await generateAndStoreMorningBriefing(session?.accessToken);
+  revalidatePath("/");
+}
+
 export default async function Home() {
   const session = await auth();
 
-  const [weather, news, events] = await Promise.all([
-    getMainzWeather(),
-    getAllNews(),
-    session?.accessToken ? getUpcomingEvents(session.accessToken) : Promise.resolve([]),
-  ]);
+  let briefing = await getStoredMorningBriefing();
+  if (!briefing) {
+    briefing = await generateAndStoreMorningBriefing(session?.accessToken);
+  }
+
+  const paragraphs =
+    briefing?.text.split(/\n\s*\n/).filter((p) => p.trim().length > 0) ?? [];
 
   return (
     <div className="flex flex-1 flex-col items-center gap-8 bg-zinc-50 px-6 py-16 text-center dark:bg-zinc-900">
@@ -33,57 +45,43 @@ export default async function Home() {
         </p>
       </div>
 
-      <div className="w-full max-w-xs rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-800">
-        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-          Wetter in Mainz
-        </p>
-        {weather ? (
-          <>
-            <div className="mt-2 flex items-center justify-center gap-3">
-              <span className="text-4xl" aria-hidden="true">
-                {weather.icon}
-              </span>
-              <span className="text-4xl font-semibold text-zinc-900 dark:text-zinc-50">
-                {Math.round(weather.temperature)}°C
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-              {weather.description}
-            </p>
-          </>
+      <div className="w-full max-w-xl rounded-2xl border border-zinc-200 bg-white p-8 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-800">
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+            {briefing
+              ? `Erstellt am ${formatTimestamp(briefing.generatedAt)} Uhr`
+              : "Dein Morgenbriefing"}
+          </p>
+          <form action={regenerateBriefing}>
+            <button
+              type="submit"
+              className="shrink-0 text-xs text-zinc-500 hover:underline dark:text-zinc-400"
+            >
+              Neu erstellen
+            </button>
+          </form>
+        </div>
+
+        {paragraphs.length > 0 ? (
+          <div className="mt-4 space-y-4 text-base leading-relaxed text-zinc-800 dark:text-zinc-100">
+            {paragraphs.map((paragraph, index) => (
+              <p key={index}>{paragraph}</p>
+            ))}
+          </div>
         ) : (
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            Wetterdaten aktuell nicht verfügbar.
+          <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+            Dein Briefing konnte noch nicht erstellt werden. Versuch es über
+            &quot;Neu erstellen&quot; erneut.
           </p>
         )}
       </div>
 
-      <div className="w-full max-w-xs rounded-2xl border border-zinc-200 bg-white p-6 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-800">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            Nächste Termine
-          </p>
-          {session && (
-            <form
-              action={async () => {
-                "use server";
-                await signOut();
-              }}
-            >
-              <button
-                type="submit"
-                className="text-xs text-zinc-500 hover:underline dark:text-zinc-400"
-              >
-                Abmelden
-              </button>
-            </form>
-          )}
-        </div>
-
+      <div className="w-full max-w-xl rounded-2xl border border-zinc-200 bg-white p-6 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-800">
         {!session ? (
-          <div className="mt-3">
+          <>
             <p className="text-sm text-zinc-600 dark:text-zinc-300">
-              Melde dich mit Google an, um deine Termine zu sehen.
+              Melde dich mit Google an, damit deine Kalendertermine ins
+              Briefing einfließen.
             </p>
             <form
               action={async () => {
@@ -99,58 +97,27 @@ export default async function Home() {
                 Mit Google anmelden
               </button>
             </form>
-          </div>
-        ) : events.length > 0 ? (
-          <ul className="mt-3 space-y-3">
-            {events.map((event) => (
-              <li key={event.id} className="flex gap-3">
-                <span className="w-16 shrink-0 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                  {formatEventTime(event)}
-                </span>
-                <span className="text-sm text-zinc-900 dark:text-zinc-50">
-                  {event.title}
-                </span>
-              </li>
-            ))}
-          </ul>
+          </>
         ) : (
-          <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-            Keine anstehenden Termine.
-          </p>
-        )}
-      </div>
-
-      <div className="grid w-full max-w-4xl grid-cols-1 gap-4 text-left sm:grid-cols-2">
-        {news.map((source) => (
-          <div
-            key={source.id}
-            className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-800"
-          >
-            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              {source.label}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-zinc-600 dark:text-zinc-300">
+              Mit Google angemeldet – Termine fließen ins Briefing ein.
             </p>
-            {source.headlines.length > 0 ? (
-              <ul className="mt-3 space-y-3">
-                {source.headlines.map((headline) => (
-                  <li key={headline.link}>
-                    <a
-                      href={headline.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium text-zinc-900 hover:underline dark:text-zinc-50"
-                    >
-                      {headline.title}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-                Schlagzeilen aktuell nicht verfügbar.
-              </p>
-            )}
+            <form
+              action={async () => {
+                "use server";
+                await signOut();
+              }}
+            >
+              <button
+                type="submit"
+                className="text-xs text-zinc-500 hover:underline dark:text-zinc-400"
+              >
+                Abmelden
+              </button>
+            </form>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
