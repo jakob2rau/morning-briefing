@@ -1,10 +1,11 @@
 import { getMainzWeather } from "@/lib/weather";
+import { getAllNews } from "@/lib/news";
 
 export default async function Home() {
-  const weather = await getMainzWeather();
+  const [weather, news] = await Promise.all([getMainzWeather(), getAllNews()]);
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-8 bg-zinc-50 px-6 py-16 text-center dark:bg-zinc-900">
+    <div className="flex flex-1 flex-col items-center gap-8 bg-zinc-50 px-6 py-16 text-center dark:bg-zinc-900">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
           Morning Briefing
@@ -38,6 +39,39 @@ export default async function Home() {
             Wetterdaten aktuell nicht verfügbar.
           </p>
         )}
+      </div>
+
+      <div className="grid w-full max-w-4xl grid-cols-1 gap-4 text-left sm:grid-cols-2">
+        {news.map((source) => (
+          <div
+            key={source.id}
+            className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-800"
+          >
+            <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+              {source.label}
+            </p>
+            {source.headlines.length > 0 ? (
+              <ul className="mt-3 space-y-3">
+                {source.headlines.map((headline) => (
+                  <li key={headline.link}>
+                    <a
+                      href={headline.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-zinc-900 hover:underline dark:text-zinc-50"
+                    >
+                      {headline.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+                Schlagzeilen aktuell nicht verfügbar.
+              </p>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
