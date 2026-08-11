@@ -8,7 +8,8 @@ type Status =
   | "unsubscribed"
   | "subscribed"
   | "denied"
-  | "busy";
+  | "busy"
+  | "error";
 
 type SupportChecks = {
   isSecureContext: boolean;
@@ -48,6 +49,15 @@ function collectSupportChecks(): SupportChecks {
   };
 }
 
+// Einzige Stelle, die entscheidet, ob Push grundsätzlich unterstützt wird -
+// wird sowohl für die Statuslogik als auch für die Debug-Anzeige genutzt,
+// damit beide niemals widersprüchliche Ergebnisse zeigen können.
+function isPushSupported(checks: SupportChecks): boolean {
+  return (
+    checks.hasServiceWorker && checks.hasPushManager && checks.hasNotification
+  );
+}
+
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -55,7 +65,17 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 }
 
-function DebugPanel({ checks }: { checks: SupportChecks }) {
+function errorToMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function DebugPanel({
+  checks,
+  lastError,
+}: {
+  checks: SupportChecks;
+  lastError: string | null;
+}) {
   const rows: Array<[string, boolean | string]> = [
     ["Sicherer Kontext (HTTPS)", checks.isSecureContext],
     ["Service Worker unterstützt", checks.hasServiceWorker],
@@ -63,6 +83,7 @@ function DebugPanel({ checks }: { checks: SupportChecks }) {
     ["Notification API unterstützt", checks.hasNotification],
     ["Standalone-Modus erkannt", checks.isStandalone],
     ["Benachrichtigungs-Berechtigung", checks.notificationPermission],
+    ["Push insgesamt unterstützt", isPushSupported(checks)],
   ];
 
   return (
@@ -88,6 +109,11 @@ function DebugPanel({ checks }: { checks: SupportChecks }) {
           </li>
         ))}
       </ul>
+      {lastError && (
+        <p className="mt-2 break-words text-red-600 dark:text-red-400">
+          Letzter Fehler: {lastError}
+        </p>
+      )}
       <p className="mt-2 break-all text-[10px] text-zinc-400 dark:text-zinc-500">
         {checks.userAgent}
       </p>
@@ -98,6 +124,7 @@ function DebugPanel({ checks }: { checks: SupportChecks }) {
 export default function PushSubscribeButton() {
   const [status, setStatus] = useState<Status>("checking");
   const [checks, setChecks] = useState<SupportChecks | null>(null);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,11 +133,7 @@ export default function PushSubscribeButton() {
       const support = collectSupportChecks();
       if (!cancelled) setChecks(support);
 
-      if (
-        !support.hasServiceWorker ||
-        !support.hasPushManager ||
-        !support.hasNotification
-      ) {
+      if (!isPushSupported(support)) {
         setStatus("unsupported");
         return;
       }
@@ -125,8 +148,15 @@ export default function PushSubscribeButton() {
         const existing = await registration.pushManager.getSubscription();
         if (!cancelled) setStatus(existing ? "subscribed" : "unsubscribed");
       } catch (error) {
+        // Wichtig: hier NICHT "unsupported" setzen - die Checks oben (und
+        // damit das Debug-Panel) zeigen ja, dass die APIs vorhanden sind.
+        // Ein Fehler an dieser Stelle ist ein Registrierungsproblem, kein
+        // Support-Problem, und bekommt deshalb einen eigenen Status.
         console.error("Fehler bei der Service-Worker-Registrierung", error);
-        if (!cancelled) setStatus("unsupported");
+        if (!cancelled) {
+          setLastError(errorToMessage(error));
+          setStatus("error");
+        }
       }
     }
 
@@ -139,12 +169,13 @@ export default function PushSubscribeButton() {
   async function handleSubscribe() {
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!publicKey) {
-      console.error("NEXT_PUBLIC_VAPID_PUBLIC_KEY ist nicht gesetzt.");
-      setStatus("unsupported");
+      setLastError("NEXT_PUBLIC_VAPID_PUBLIC_KEY ist nicht gesetzt.");
+      setStatus("error");
       return;
     }
 
     setStatus("busy");
+    setLastError(null);
 
     try {
       const permission = await Notification.requestPermission();
@@ -156,7 +187,9 @@ export default function PushSubscribeButton() {
         return;
       }
 
-      const registration = await navigator.serviceWorker.ready;
+      // register() statt .ready verwenden: .ready hängt sich auf, wenn die
+      // Registrierung aus irgendeinem Grund nie aktiv wird.
+      const registration = await navigator.serviceWorker.register("/sw.js");
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicKey),
@@ -171,15 +204,17 @@ export default function PushSubscribeButton() {
       setStatus("subscribed");
     } catch (error) {
       console.error("Fehler beim Aktivieren der Benachrichtigungen", error);
-      setStatus("unsubscribed");
+      setLastError(errorToMessage(error));
+      setStatus("error");
     }
   }
 
   async function handleUnsubscribe() {
     setStatus("busy");
+    setLastError(null);
 
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await navigator.serviceWorker.register("/sw.js");
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
@@ -194,6 +229,7 @@ export default function PushSubscribeButton() {
       setStatus("unsubscribed");
     } catch (error) {
       console.error("Fehler beim Deaktivieren der Benachrichtigungen", error);
+      setLastError(errorToMessage(error));
       setStatus("subscribed");
     }
   }
@@ -216,6 +252,22 @@ export default function PushSubscribeButton() {
         Benachrichtigungen sind für diese Seite blockiert. Erlaube sie in
         den Browser-/System-Einstellungen, um sie hier zu aktivieren.
       </p>
+    );
+  } else if (status === "error") {
+    body = (
+      <div className="space-y-2">
+        <p className="text-xs text-red-600 dark:text-red-400">
+          Dein Gerät erfüllt alle Voraussetzungen, aber beim Aktivieren ist
+          ein Fehler aufgetreten (siehe Debug-Panel unten).
+        </p>
+        <button
+          type="button"
+          onClick={handleSubscribe}
+          className="flex h-10 w-full items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+        >
+          Erneut versuchen
+        </button>
+      </div>
     );
   } else if (status === "subscribed") {
     body = (
@@ -243,7 +295,7 @@ export default function PushSubscribeButton() {
   return (
     <div>
       {body}
-      {checks && <DebugPanel checks={checks} />}
+      {checks && <DebugPanel checks={checks} lastError={lastError} />}
     </div>
   );
 }
