@@ -21,7 +21,8 @@ export default async function Home() {
 
   let briefing = await getStoredMorningBriefing();
   if (!briefing) {
-    briefing = await generateAndStoreMorningBriefing(session?.accessToken);
+    briefing = (await generateAndStoreMorningBriefing(session?.accessToken))
+      .briefing;
   }
 
   const paragraphs =

@@ -55,16 +55,22 @@ async function regenerate() {
   // oder manueller Trigger), daher wird hier immer eine
   // Push-Benachrichtigung verschickt.
   const session = await auth();
-  const briefing = await generateAndStoreMorningBriefing(session?.accessToken, {
+  const result = await generateAndStoreMorningBriefing(session?.accessToken, {
     notify: true,
   });
 
-  if (!briefing) {
+  if (!result.briefing) {
+    // Diese Route ist bereits per CRON_SECRET geschützt (siehe
+    // isAuthorized oben) - deshalb ist es hier sicher, den echten
+    // Fehlertext mit auszugeben, statt nur die generische Meldung.
     return NextResponse.json(
-      { error: "Morgenbriefing konnte nicht erstellt werden." },
+      {
+        error: "Morgenbriefing konnte nicht erstellt werden.",
+        details: result.error,
+      },
       { status: 502 },
     );
   }
 
-  return NextResponse.json(briefing);
+  return NextResponse.json(result.briefing);
 }

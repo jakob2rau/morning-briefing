@@ -100,17 +100,26 @@ async function saveBriefing(briefing: MorningBriefing) {
   await writeJsonBlob(BRIEFING_BLOB_PATH, briefing);
 }
 
+export type GenerateBriefingResult =
+  | { briefing: MorningBriefing; error: null }
+  | { briefing: null; error: string };
+
 /**
  * Sammelt Wetter-, News- und Kalenderdaten, lässt Claude daraus einen
  * kurzen Morgen-Text formulieren und speichert das Ergebnis für die
  * spätere Anzeige. Mit `notify: true` (z. B. im Cron-Job) wird zusätzlich
  * eine Push-Benachrichtigung mit Teaser-Text an alle angemeldeten Geräte
  * verschickt.
+ *
+ * Gibt bei einem Fehlschlag die tatsächliche Fehlermeldung mit zurück
+ * (nicht nur `null`), damit Aufrufer sie kontrolliert - z. B. nur nach
+ * Prüfung eines Secrets - an einen Nutzer weitergeben können, statt sie
+ * nur im Server-Log zu haben.
  */
 export async function generateAndStoreMorningBriefing(
   accessToken?: string,
   options?: { notify?: boolean },
-): Promise<MorningBriefing | null> {
+): Promise<GenerateBriefingResult> {
   const [weather, news, events] = await Promise.all([
     getMainzWeather(),
     getAllNews(5),
@@ -121,7 +130,9 @@ export async function generateAndStoreMorningBriefing(
 
   try {
     const text = await callClaude(dataSummary);
-    if (!text) return null;
+    if (!text) {
+      return { briefing: null, error: "Claude hat keinen Text geliefert." };
+    }
 
     const briefing: MorningBriefing = {
       text,
@@ -139,10 +150,11 @@ export async function generateAndStoreMorningBriefing(
       }
     }
 
-    return briefing;
+    return { briefing, error: null };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("Fehler beim Erstellen des Morgenbriefings", error);
-    return null;
+    return { briefing: null, error: message };
   }
 }
 
