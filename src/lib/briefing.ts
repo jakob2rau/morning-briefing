@@ -1,10 +1,9 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
 import { getMainzWeather, type WeatherSummary } from "@/lib/weather";
 import { getAllNews } from "@/lib/news";
 import { getUpcomingEvents, type CalendarEvent } from "@/lib/calendar";
 import { sendBriefingPushNotification } from "@/lib/push";
+import { readJsonBlob, writeJsonBlob } from "@/lib/blobStore";
 
 export type MorningBriefing = {
   text: string;
@@ -13,8 +12,7 @@ export type MorningBriefing = {
 
 type NewsSummary = Awaited<ReturnType<typeof getAllNews>>;
 
-const STORAGE_DIR = path.join(process.cwd(), "data");
-const STORAGE_PATH = path.join(STORAGE_DIR, "morning-briefing.json");
+const BRIEFING_BLOB_PATH = "morning-briefing.json";
 
 const MODEL = "claude-haiku-4-5-20251001";
 
@@ -99,8 +97,7 @@ async function callClaude(dataSummary: string): Promise<string | null> {
 }
 
 async function saveBriefing(briefing: MorningBriefing) {
-  await fs.mkdir(STORAGE_DIR, { recursive: true });
-  await fs.writeFile(STORAGE_PATH, JSON.stringify(briefing, null, 2), "utf-8");
+  await writeJsonBlob(BRIEFING_BLOB_PATH, briefing);
 }
 
 /**
@@ -150,10 +147,5 @@ export async function generateAndStoreMorningBriefing(
 }
 
 export async function getStoredMorningBriefing(): Promise<MorningBriefing | null> {
-  try {
-    const raw = await fs.readFile(STORAGE_PATH, "utf-8");
-    return JSON.parse(raw) as MorningBriefing;
-  } catch {
-    return null;
-  }
+  return readJsonBlob<MorningBriefing>(BRIEFING_BLOB_PATH);
 }

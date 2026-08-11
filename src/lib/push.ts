@@ -1,9 +1,7 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import webpush, { type PushSubscription } from "web-push";
+import { readJsonBlob, writeJsonBlob } from "@/lib/blobStore";
 
-const STORAGE_DIR = path.join(process.cwd(), "data");
-const STORAGE_PATH = path.join(STORAGE_DIR, "push-subscriptions.json");
+const SUBSCRIPTIONS_BLOB_PATH = "push-subscriptions.json";
 
 let vapidConfigured = false;
 
@@ -25,21 +23,14 @@ function configureVapid() {
 }
 
 async function readSubscriptions(): Promise<PushSubscription[]> {
-  try {
-    const raw = await fs.readFile(STORAGE_PATH, "utf-8");
-    return JSON.parse(raw) as PushSubscription[];
-  } catch {
-    return [];
-  }
+  const subscriptions = await readJsonBlob<PushSubscription[]>(
+    SUBSCRIPTIONS_BLOB_PATH,
+  );
+  return subscriptions ?? [];
 }
 
 async function writeSubscriptions(subscriptions: PushSubscription[]) {
-  await fs.mkdir(STORAGE_DIR, { recursive: true });
-  await fs.writeFile(
-    STORAGE_PATH,
-    JSON.stringify(subscriptions, null, 2),
-    "utf-8",
-  );
+  await writeJsonBlob(SUBSCRIPTIONS_BLOB_PATH, subscriptions);
 }
 
 export async function addPushSubscription(subscription: PushSubscription) {
