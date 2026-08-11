@@ -1,10 +1,10 @@
-import { revalidatePath } from "next/cache";
 import { auth, signIn, signOut } from "@/auth";
 import {
   generateAndStoreMorningBriefing,
   getStoredMorningBriefing,
 } from "@/lib/briefing";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
+import RegenerateBriefingButton from "@/components/RegenerateBriefingButton";
 
 function formatTimestamp(iso: string) {
   return new Date(iso).toLocaleString("de-DE", {
@@ -14,13 +14,6 @@ function formatTimestamp(iso: string) {
     minute: "2-digit",
     timeZone: "Europe/Berlin",
   });
-}
-
-async function regenerateBriefing() {
-  "use server";
-  const session = await auth();
-  await generateAndStoreMorningBriefing(session?.accessToken);
-  revalidatePath("/");
 }
 
 export default async function Home() {
@@ -53,14 +46,7 @@ export default async function Home() {
               ? `Erstellt am ${formatTimestamp(briefing.generatedAt)} Uhr`
               : "Dein Morgenbriefing"}
           </p>
-          <form action={regenerateBriefing}>
-            <button
-              type="submit"
-              className="shrink-0 text-xs text-zinc-500 hover:underline dark:text-zinc-400"
-            >
-              Neu erstellen
-            </button>
-          </form>
+          <RegenerateBriefingButton />
         </div>
 
         {paragraphs.length > 0 ? (
