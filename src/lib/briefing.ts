@@ -296,6 +296,18 @@ async function callClaude(dataSummary: string): Promise<BriefingCategory[] | nul
       block.type === "tool_use" && block.name === SUBMIT_BRIEFING_TOOL_NAME,
   );
 
+  // Diagnose-Logging: hilft zu unterscheiden, ob Claude vorzeitig
+  // abgebrochen hat (z. B. stop_reason "max_tokens") oder ob das Tool
+  // schlicht nicht aufgerufen wurde.
+  console.error(
+    "callClaude diagnostics",
+    JSON.stringify({
+      stopReason: response.stop_reason,
+      hasToolUse: Boolean(toolUse),
+      inputPreview: toolUse ? JSON.stringify(toolUse.input).slice(0, 2000) : null,
+    }),
+  );
+
   if (!toolUse) return null;
 
   return normalizeCategories(toolUse.input);
