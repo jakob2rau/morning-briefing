@@ -19,6 +19,12 @@ export type CategoryMeta = {
   // ausnahmsweise doch ausn­lässt - die Karte im Grid soll nie fehlen.
   fallbackTeaser: string;
   fallbackFullText: string;
+  // Anzeige eines Quellenlinks in der Story-Ansicht - verweist auf die
+  // Website(s), aus denen die Rohdaten für diese Kategorie stammen
+  // (src/lib/news.ts bzw. Open-Meteo für "wetter"), nicht auf einen
+  // einzelnen von Claude verarbeiteten Artikel.
+  sourceLabel: string;
+  sourceUrl: string;
 };
 
 // Feste Reihenfolge für Prompt, Grid und Story-Navigation.
@@ -40,6 +46,8 @@ export const CATEGORIES: Record<BriefingCategoryId, CategoryMeta> = {
     fallbackTeaser: "Keine Wetter- oder Termindaten verfügbar.",
     fallbackFullText:
       "Für Wetter und Termine liegen heute leider keine Daten vor.",
+    sourceLabel: "Wetterdaten von Open-Meteo",
+    sourceUrl: "https://open-meteo.com",
   },
   tech: {
     id: "tech",
@@ -51,6 +59,8 @@ export const CATEGORIES: Record<BriefingCategoryId, CategoryMeta> = {
     fallbackTeaser: "Heute keine Tech- oder KI-Meldungen.",
     fallbackFullText:
       "Zu Technik, Startups und KI gibt es heute keine Meldungen.",
+    sourceLabel: "TechCrunch",
+    sourceUrl: "https://techcrunch.com",
   },
   wirtschaft: {
     id: "wirtschaft",
@@ -60,6 +70,8 @@ export const CATEGORIES: Record<BriefingCategoryId, CategoryMeta> = {
       "Meldungen mit je 2-3 Sätzen Einordnung.",
     fallbackTeaser: "Heute keine Wirtschaftsmeldungen.",
     fallbackFullText: "Zur Wirtschaft gibt es heute keine Meldungen.",
+    sourceLabel: "tagesschau.de – Wirtschaft",
+    sourceUrl: "https://www.tagesschau.de/wirtschaft/konjunktur/",
   },
   politik: {
     id: "politik",
@@ -72,6 +84,8 @@ export const CATEGORIES: Record<BriefingCategoryId, CategoryMeta> = {
       "relevanter ist.",
     fallbackTeaser: "Heute keine Politik-Meldungen.",
     fallbackFullText: "Zur Politik gibt es heute keine Meldungen.",
+    sourceLabel: "tagesschau.de",
+    sourceUrl: "https://www.tagesschau.de",
   },
   sport: {
     id: "sport",
@@ -81,5 +95,7 @@ export const CATEGORIES: Record<BriefingCategoryId, CategoryMeta> = {
       "mit je 2-3 Sätzen Einordnung.",
     fallbackTeaser: "Heute keine Sportmeldungen.",
     fallbackFullText: "Zum Sport gibt es heute keine Meldungen.",
+    sourceLabel: "sportschau.de",
+    sourceUrl: "https://www.sportschau.de",
   },
 };

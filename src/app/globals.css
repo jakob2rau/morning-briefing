@@ -7,26 +7,28 @@
   /* Pastellfarben pro Briefing-Kategorie: heller Kartenhintergrund, ein
      etwas kräftigerer Badge-Ton fürs Icon, und eine Akzentfarbe für
      Icon/Fortschrittsbalken. Bewusst nur ein (helles) Theme - kein
-     Dark-Mode-Gegenstück. */
-  --cat-wetter-bg: #e6f2ff;
-  --cat-wetter-badge: #cfe6ff;
-  --cat-wetter-accent: #2563eb;
+     Dark-Mode-Gegenstück. Fünf klar unterscheidbare Pastelltöne: Amber
+     (Wetter), Lila (Tech), Blau-Grün (Wirtschaft), Koralle (Politik),
+     Grün (Sport). */
+  --cat-wetter-bg: #fff3d6;
+  --cat-wetter-badge: #ffe49e;
+  --cat-wetter-accent: #b45309;
 
   --cat-tech-bg: #f1ebff;
   --cat-tech-badge: #e1d3ff;
   --cat-tech-accent: #7c3aed;
 
-  --cat-wirtschaft-bg: #e7f8ed;
-  --cat-wirtschaft-badge: #c8efd5;
-  --cat-wirtschaft-accent: #15803d;
+  --cat-wirtschaft-bg: #e1f5f3;
+  --cat-wirtschaft-badge: #baebe4;
+  --cat-wirtschaft-accent: #0f766e;
 
   --cat-politik-bg: #ffeee6;
   --cat-politik-badge: #ffd9c4;
   --cat-politik-accent: #c2410c;
 
-  --cat-sport-bg: #fff7d6;
-  --cat-sport-badge: #ffeba3;
-  --cat-sport-accent: #a16207;
+  --cat-sport-bg: #e7f8ed;
+  --cat-sport-badge: #c8efd5;
+  --cat-sport-accent: #16a34a;
 }
 
 @theme inline {

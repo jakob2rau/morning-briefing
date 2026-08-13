@@ -145,14 +145,8 @@ export default function CategoryStoryModal({
         ))}
       </div>
 
-      {/* Kopfzeile */}
-      <div className="flex items-center justify-between px-4 py-4">
-        <div className="flex items-center gap-2">
-          <Icon className={colors.accent} size={22} stroke={1.75} />
-          <span className="text-sm font-semibold text-zinc-800">
-            {meta.label}
-          </span>
-        </div>
+      {/* Schließen-Button */}
+      <div className="flex justify-end px-4 py-3">
         <button
           ref={closeButtonRef}
           type="button"
@@ -171,11 +165,41 @@ export default function CategoryStoryModal({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div ref={trackRef}>
-          <div className="mx-auto h-full max-w-xl overflow-y-auto px-6 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
-            <p className="text-lg leading-relaxed whitespace-pre-line text-zinc-800">
-              {current.fullText}
-            </p>
+        <div ref={trackRef} className="flex h-full flex-col">
+          {/* Icon-Anker: farbiger, abgerundeter Badge + Kategorie-Name als
+              kleines Label, freistehend auf dem Pastell-Hintergrund. */}
+          <div className="flex items-center gap-3 px-7 pb-5">
+            <div
+              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${colors.badgeBg}`}
+            >
+              <Icon className={colors.accent} size={28} stroke={1.75} />
+            </div>
+            <span className="text-sm font-semibold tracking-wide text-zinc-700 uppercase">
+              {meta.label}
+            </span>
+          </div>
+
+          {/* Abgerundete Content-Karte mit klarer Typografie-Hierarchie:
+              große fette Überschrift (Teaser), dann der Volltext mit
+              großzügigem Zeilenabstand, darunter Trennlinie + Quelle. */}
+          <div className="flex-1 overflow-y-auto rounded-t-[2rem] bg-white/95 px-7 pt-8 pb-[calc(env(safe-area-inset-bottom)+2rem)] shadow-[0_-8px_30px_rgba(0,0,0,0.06)]">
+            <div className="mx-auto max-w-xl">
+              <h2 className="text-2xl leading-snug font-bold text-zinc-900">
+                {current.teaser}
+              </h2>
+              <p className="mt-5 text-base leading-[1.7] whitespace-pre-line text-zinc-700">
+                {current.fullText}
+              </p>
+              <hr className="mt-8 border-t border-zinc-200" />
+              <a
+                href={meta.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`mt-4 inline-block text-sm font-medium text-zinc-500 hover:underline`}
+              >
+                Quelle: {meta.sourceLabel}
+              </a>
+            </div>
           </div>
         </div>
 
