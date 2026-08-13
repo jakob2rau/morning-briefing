@@ -13,6 +13,10 @@ import {
 export type BriefingItem = {
   headline: string;
   text: string;
+  // Ausführlichere Version von "text" (ca. 8-9 Sätze, mehr Details/
+  // Hintergrund) - wird erst angezeigt, wenn der Nutzer den Meldungs-
+  // Block per Tap aufklappt.
+  expandedText: string;
   sourceLabel: string;
   sourceUrl: string;
 };
@@ -98,6 +102,11 @@ function buildSystemPrompt(): string {
     "(nicht einfach die Original-Schlagzeile kopieren).\n" +
     "  - \"text\": 2-3 Sätze Einordnung - was ist passiert, und warum " +
     "ist es relevant. Fließtext ohne Aufzählungszeichen.\n" +
+    "  - \"expandedText\": eine ausführlichere Version derselben Meldung " +
+    "mit ca. 8-9 Sätzen - mehr Hintergrund, Kontext, Zahlen/Fakten " +
+    "soweit vorhanden. Keine reine Wiederholung von \"text\", sondern " +
+    "eine echte Erweiterung um zusätzliche Details. Ebenfalls Fließtext " +
+    "ohne Aufzählungszeichen.\n" +
     "  - \"sourceLabel\": Name der Quelle (z. B. \"tagesschau.de\", " +
     "\"TechCrunch\").\n" +
     "  - \"sourceUrl\": bei Nachrichten-Kategorien EXAKT einer der oben " +
@@ -133,10 +142,11 @@ function buildBriefingTool(): Anthropic.Tool {
                   properties: {
                     headline: { type: "string" },
                     text: { type: "string" },
+                    expandedText: { type: "string" },
                     sourceLabel: { type: "string" },
                     sourceUrl: { type: "string" },
                   },
-                  required: ["headline", "text"],
+                  required: ["headline", "text", "expandedText"],
                 },
               },
             },
@@ -165,10 +175,8 @@ function normalizeItem(
   category: BriefingCategoryId,
 ): BriefingItem | null {
   if (!entry || typeof entry !== "object") return null;
-  const { headline, text, sourceLabel, sourceUrl } = entry as Record<
-    string,
-    unknown
-  >;
+  const { headline, text, expandedText, sourceLabel, sourceUrl } =
+    entry as Record<string, unknown>;
 
   const trimmedHeadline = typeof headline === "string" ? headline.trim() : "";
   const trimmedText = typeof text === "string" ? text.trim() : "";
@@ -177,10 +185,17 @@ function normalizeItem(
   const fallback = CATEGORIES[category];
   const trimmedSourceLabel =
     typeof sourceLabel === "string" ? sourceLabel.trim() : "";
+  const trimmedExpandedText =
+    typeof expandedText === "string" ? expandedText.trim() : "";
+  const resolvedText = trimmedText || fallback.fallbackItemText;
 
   return {
     headline: trimmedHeadline || fallback.fallbackItemHeadline,
-    text: trimmedText || fallback.fallbackItemText,
+    text: resolvedText,
+    // Fällt zurück auf den kurzen Text, falls Claude keinen (validen)
+    // Langtext liefert - immer noch besser, als eine leere Ansicht beim
+    // Aufklappen zu zeigen.
+    expandedText: trimmedExpandedText || resolvedText,
     sourceLabel: trimmedSourceLabel || fallback.sourceLabel,
     sourceUrl: isValidSourceUrl(sourceUrl) ? sourceUrl.trim() : fallback.sourceUrl,
   };
@@ -231,6 +246,7 @@ function normalizeCategories(input: unknown): BriefingCategory[] {
               {
                 headline: CATEGORIES[categoryId].fallbackItemHeadline,
                 text: CATEGORIES[categoryId].fallbackItemText,
+                expandedText: CATEGORIES[categoryId].fallbackItemText,
                 sourceLabel: CATEGORIES[categoryId].sourceLabel,
                 sourceUrl: CATEGORIES[categoryId].sourceUrl,
               },
@@ -248,6 +264,7 @@ function normalizeCategories(input: unknown): BriefingCategory[] {
           {
             headline: category.fallbackItemHeadline,
             text: category.fallbackItemText,
+            expandedText: category.fallbackItemText,
             sourceLabel: category.sourceLabel,
             sourceUrl: category.sourceUrl,
           },
@@ -262,7 +279,7 @@ async function callClaude(dataSummary: string): Promise<BriefingCategory[] | nul
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 3800,
+    max_tokens: 6500,
     system: buildSystemPrompt(),
     tools: [tool],
     tool_choice: { type: "tool", name: SUBMIT_BRIEFING_TOOL_NAME },
@@ -294,16 +311,24 @@ function isValidBriefing(value: unknown): value is MorningBriefing {
   if (!Array.isArray(categories) || categories.length !== CATEGORY_ORDER.length) {
     return false;
   }
-  // Ältere Formate (Freitext-"fullText" statt "items") sollen ebenfalls
-  // als ungültig gelten, damit sie durch ein frisches Briefing im
-  // aktuellen Format ersetzt werden statt die Story-Ansicht crashen zu
-  // lassen.
-  return categories.every(
-    (category) =>
+  // Ältere Formate (Freitext-"fullText" statt "items", oder "items" ohne
+  // "expandedText" für die Tap-to-expand-Ansicht) sollen ebenfalls als
+  // ungültig gelten, damit sie durch ein frisches Briefing im aktuellen
+  // Format ersetzt werden statt die Story-Ansicht crashen zu lassen.
+  return categories.every((category) => {
+    const items = (category as { items?: unknown })?.items;
+    return (
       category &&
       typeof category === "object" &&
-      Array.isArray((category as { items?: unknown }).items),
-  );
+      Array.isArray(items) &&
+      items.every(
+        (item) =>
+          item &&
+          typeof item === "object" &&
+          typeof (item as { expandedText?: unknown }).expandedText === "string",
+      )
+    );
+  });
 }
 
 export type GenerateBriefingResult =

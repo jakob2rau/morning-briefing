@@ -18,10 +18,22 @@ export default function CategoryStoryModal({
   onClose,
 }: Props) {
   const [index, setIndex] = useState(initialIndex);
+  const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const canGoNext = index < categories.length - 1;
+
+  function toggleItem(key: string) {
+    setExpandedKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   function scrollToIndex(target: number, behavior: ScrollBehavior) {
     const container = containerRef.current;
@@ -124,27 +136,51 @@ export default function CategoryStoryModal({
                   optisch getrennte Blöcke. */}
               <div className="flex-1 overflow-y-auto rounded-t-[2rem] bg-white/95 px-7 pt-8 pb-[calc(env(safe-area-inset-bottom)+2rem)] shadow-[0_-8px_30px_rgba(0,0,0,0.06)]">
                 <div className="mx-auto max-w-xl divide-y divide-zinc-200">
-                  {category.items.map((item, itemIndex) => (
-                    <article
-                      key={itemIndex}
-                      className="py-5 first:pt-0 last:pb-0"
-                    >
-                      <h3 className="text-lg leading-snug font-bold text-zinc-900">
-                        {item.headline}
-                      </h3>
-                      <p className="mt-2 text-base leading-[1.7] whitespace-pre-line text-zinc-700">
-                        {item.text}
-                      </p>
-                      <a
-                        href={item.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 inline-block text-sm font-medium text-zinc-500 hover:underline"
+                  {category.items.map((item, itemIndex) => {
+                    const key = `${category.id}-${itemIndex}`;
+                    const isExpanded = expandedKeys.has(key);
+
+                    return (
+                      <article
+                        key={itemIndex}
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isExpanded}
+                        onClick={() => toggleItem(key)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            toggleItem(key);
+                          }
+                        }}
+                        className="cursor-pointer py-5 first:pt-0 last:pb-0 select-none"
                       >
-                        Quelle: {item.sourceLabel}
-                      </a>
-                    </article>
-                  ))}
+                        <h3 className="text-lg leading-snug font-bold text-zinc-900">
+                          {item.headline}
+                        </h3>
+                        <p className="mt-2 text-base leading-[1.7] whitespace-pre-line text-zinc-700">
+                          {isExpanded ? item.expandedText : item.text}
+                        </p>
+                        <div className="mt-3 flex items-center gap-1 text-sm font-medium text-zinc-400">
+                          <span>{isExpanded ? "Weniger anzeigen" : "Mehr lesen"}</span>
+                          <IconChevronDown
+                            size={16}
+                            stroke={2}
+                            className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                          />
+                        </div>
+                        <a
+                          href={item.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(event) => event.stopPropagation()}
+                          className="mt-2 inline-block text-sm font-medium text-zinc-500 hover:underline"
+                        >
+                          Quelle: {item.sourceLabel}
+                        </a>
+                      </article>
+                    );
+                  })}
                 </div>
               </div>
             </section>
