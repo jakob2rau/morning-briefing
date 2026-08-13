@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { generateAndStoreMorningBriefing } from "@/lib/briefing";
-import { markDoneToday, type StreakData } from "@/lib/streak";
+import { markDoneToday, resetStreak, type StreakData } from "@/lib/streak";
 
 export type RegenerateResult = { error: string | null };
 
@@ -46,4 +46,14 @@ export async function markDayDoneAction(): Promise<MarkDayDoneResult> {
       error: "Konnte nicht gespeichert werden. Versuch es gleich noch einmal.",
     };
   }
+}
+
+/**
+ * Nur zu Testzwecken über die Einstellungsseite erreichbar - setzt den
+ * Streak-Zähler zurück, damit sich die Erhöhungs-Animation beliebig oft
+ * wiederholen lässt.
+ */
+export async function resetStreakAction(): Promise<void> {
+  await resetStreak();
+  revalidatePath("/");
 }

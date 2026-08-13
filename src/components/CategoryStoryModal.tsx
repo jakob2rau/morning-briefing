@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { IconChevronDown, IconX } from "@tabler/icons-react";
+import { IconChevronDown, IconSunrise, IconX } from "@tabler/icons-react";
 import type { BriefingCategory } from "@/lib/briefing";
 import type { WeatherSummary } from "@/lib/weather";
 import { CATEGORIES } from "@/lib/categories";
 import { CATEGORY_COLORS, CATEGORY_ICON } from "@/components/categoryVisuals";
 import WeatherStatsGrid from "@/components/WeatherStatsGrid";
+import StreakSlideContent from "@/components/StreakSlideContent";
 
 type Props = {
   categories: BriefingCategory[];
   weather: WeatherSummary | null;
+  streak: { count: number; alreadyDoneToday: boolean };
   initialIndex: number;
   onClose: () => void;
 };
@@ -18,6 +20,7 @@ type Props = {
 export default function CategoryStoryModal({
   categories,
   weather,
+  streak,
   initialIndex,
   onClose,
 }: Props) {
@@ -28,7 +31,11 @@ export default function CategoryStoryModal({
   const containerRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  const canGoNext = index < categories.length - 1;
+  // +1 für die abschließende "Fertig für heute"-Slide, die nach allen
+  // Kategorien kommt (siehe unten) - eigene Grenze statt categories.length
+  // für sämtliche Navigations-Berechnungen.
+  const totalSlides = categories.length + 1;
+  const canGoNext = index < totalSlides - 1;
 
   function toggleItem(key: string) {
     setExpandedKeys((current) => {
@@ -50,7 +57,7 @@ export default function CategoryStoryModal({
   }
 
   function goNext() {
-    scrollToIndex(Math.min(index + 1, categories.length - 1), "smooth");
+    scrollToIndex(Math.min(index + 1, totalSlides - 1), "smooth");
   }
 
   // Beim Öffnen direkt zur angetippten Kategorie springen (ohne Animation).
@@ -66,7 +73,7 @@ export default function CategoryStoryModal({
     const container = containerRef.current;
     if (!container || container.clientHeight === 0) return;
     const nearest = Math.round(container.scrollTop / container.clientHeight);
-    setIndex(Math.min(Math.max(nearest, 0), categories.length - 1));
+    setIndex(Math.min(Math.max(nearest, 0), totalSlides - 1));
   }
 
   // Hintergrund-Scroll sperren, solange das Modal offen ist.
@@ -195,6 +202,36 @@ export default function CategoryStoryModal({
             </section>
           );
         })}
+
+        {/* Letzte Slide: "Fertig für heute" mit Streak-Erhöhung - nur
+            erreichbar, wenn man durch alle Kategorien durchgewischt hat,
+            nicht Teil der Übersicht/des Grids. */}
+        <section
+          aria-label="Fertig für heute"
+          className={`flex h-full w-full shrink-0 snap-start flex-col ${CATEGORY_COLORS.wetter.bg}`}
+        >
+          <div className="flex items-center gap-3 px-7 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-5">
+            <div
+              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${CATEGORY_COLORS.wetter.badgeBg}`}
+            >
+              <IconSunrise
+                className={CATEGORY_COLORS.wetter.accent}
+                size={28}
+                stroke={1.75}
+              />
+            </div>
+            <span className="text-sm font-semibold tracking-wide text-zinc-700 uppercase">
+              Fertig für heute
+            </span>
+          </div>
+
+          <div className="flex flex-1 flex-col items-center justify-center rounded-t-[2rem] bg-white/95 px-7 pb-[calc(env(safe-area-inset-bottom)+2rem)] shadow-[0_-8px_30px_rgba(0,0,0,0.06)]">
+            <StreakSlideContent
+              initialCount={streak.count}
+              alreadyDoneToday={streak.alreadyDoneToday}
+            />
+          </div>
+        </section>
       </div>
 
       {/* Dezenter Hinweis auf weitere Kategorien unterhalb. */}

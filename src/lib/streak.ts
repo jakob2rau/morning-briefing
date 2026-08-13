@@ -48,3 +48,10 @@ export async function markDoneToday(): Promise<StreakData> {
   await writeJsonBlob(STREAK_BLOB_PATH, next);
   return next;
 }
+
+// Nur zu Testzwecken über die Einstellungsseite erreichbar - setzt den
+// Streak-Zähler zurück, um die Erhöhungs-Animation mehrfach ausprobieren
+// zu können.
+export async function resetStreak(): Promise<void> {
+  await writeJsonBlob(STREAK_BLOB_PATH, DEFAULT_STREAK);
+}

@@ -10,9 +10,10 @@ import CategoryStoryModal from "@/components/CategoryStoryModal";
 type Props = {
   categories: BriefingCategory[];
   weather: WeatherSummary | null;
+  streak: { count: number; alreadyDoneToday: boolean };
 };
 
-export default function BriefingOverview({ categories, weather }: Props) {
+export default function BriefingOverview({ categories, weather, streak }: Props) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   if (categories.length === 0) return null;
@@ -54,6 +55,7 @@ export default function BriefingOverview({ categories, weather }: Props) {
         <CategoryStoryModal
           categories={categories}
           weather={weather}
+          streak={streak}
           initialIndex={openIndex}
           onClose={() => setOpenIndex(null)}
         />

@@ -1,7 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { getWeather, type WeatherSummary } from "@/lib/weather";
 import { getAllNews } from "@/lib/news";
-import { getUpcomingEvents, type CalendarEvent } from "@/lib/calendar";
+import {
+  getUpcomingEvents,
+  formatEventTime,
+  type CalendarEvent,
+} from "@/lib/calendar";
 import { sendBriefingPushNotification } from "@/lib/push";
 import { readJsonBlob, writeJsonBlob } from "@/lib/blobStore";
 import { getStoredSettings } from "@/lib/settings";
@@ -47,15 +51,6 @@ const SUBMIT_BRIEFING_TOOL_NAME = "submit_briefing";
 const MODEL = "claude-haiku-4-5-20251001";
 
 const client = new Anthropic();
-
-function formatEventTime(event: CalendarEvent) {
-  if (event.allDay) return "ganztägig";
-  return new Date(event.start).toLocaleTimeString("de-DE", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/Berlin",
-  });
-}
 
 function formatTodayForPrompt(): string {
   return new Date().toLocaleDateString("de-DE", {

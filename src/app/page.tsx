@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { IconSettings } from "@tabler/icons-react";
-import { auth, signIn, signOut } from "@/auth";
+import { auth } from "@/auth";
 import {
   generateAndStoreMorningBriefing,
   getStoredMorningBriefing,
@@ -8,11 +8,12 @@ import {
 import { getStoredSettings } from "@/lib/settings";
 import { getStreak, isDoneToday } from "@/lib/streak";
 import { getUpcomingEventCountdowns } from "@/lib/specialEvents";
+import { getUpcomingEvents, getTodaysEvents } from "@/lib/calendar";
 import BriefingOverview from "@/components/BriefingOverview";
-import PushSubscribeButton from "@/components/PushSubscribeButton";
 import RegenerateBriefingButton from "@/components/RegenerateBriefingButton";
-import StreakCard from "@/components/StreakCard";
 import SpecialEventCountdowns from "@/components/SpecialEventCountdowns";
+import TerminCard from "@/components/TerminCard";
+import StreakBadge from "@/components/StreakBadge";
 
 function formatTimestamp(iso: string) {
   return new Date(iso).toLocaleString("de-DE", {
@@ -33,15 +34,19 @@ export default async function Home() {
       .briefing;
   }
 
-  const [settings, streak] = await Promise.all([
+  const [settings, streak, todaysEvents] = await Promise.all([
     getStoredSettings(),
     getStreak(),
+    session?.accessToken
+      ? getUpcomingEvents(session.accessToken, 10).then(getTodaysEvents)
+      : Promise.resolve([]),
   ]);
   const countdowns = getUpcomingEventCountdowns(settings.specialEvents);
 
   return (
     <div className="flex flex-1 flex-col items-center gap-8 bg-white px-6 py-16 text-center">
       <div className="relative w-full max-w-2xl">
+        <StreakBadge count={streak.count} />
         <Link
           href="/settings"
           aria-label="Einstellungen"
@@ -64,6 +69,12 @@ export default async function Home() {
           <RegenerateBriefingButton />
         </div>
 
+        {session && (
+          <div className="mt-4">
+            <TerminCard events={todaysEvents} />
+          </div>
+        )}
+
         {countdowns.length > 0 && (
           <div className="mt-4">
             <SpecialEventCountdowns countdowns={countdowns} />
@@ -75,6 +86,7 @@ export default async function Home() {
             <BriefingOverview
               categories={briefing.categories}
               weather={briefing.weather}
+              streak={{ count: streak.count, alreadyDoneToday: isDoneToday(streak) }}
             />
           ) : (
             <p className="rounded-3xl bg-zinc-50 p-6 text-sm text-zinc-500">
@@ -82,68 +94,6 @@ export default async function Home() {
               über &quot;Neu erstellen&quot; erneut.
             </p>
           )}
-        </div>
-      </div>
-
-      <StreakCard
-        initialCount={streak.count}
-        alreadyDoneToday={isDoneToday(streak)}
-      />
-
-      <div className="w-full max-w-2xl rounded-3xl bg-zinc-50 p-6 text-left shadow-sm shadow-zinc-200/60">
-        {!session ? (
-          <>
-            <p className="text-sm text-zinc-600">
-              Melde dich mit Google an, damit deine Kalendertermine ins
-              Briefing einfließen.
-            </p>
-            <form
-              action={async () => {
-                "use server";
-                await signIn("google");
-              }}
-              className="mt-3"
-            >
-              <button
-                type="submit"
-                className="flex h-10 w-full items-center justify-center rounded-full bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
-              >
-                Mit Google anmelden
-              </button>
-            </form>
-          </>
-        ) : (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-zinc-600">
-              Mit Google angemeldet – Termine fließen ins Briefing ein.
-            </p>
-            <form
-              action={async () => {
-                "use server";
-                await signOut();
-              }}
-            >
-              <button
-                type="submit"
-                className="text-xs text-zinc-500 hover:underline"
-              >
-                Abmelden
-              </button>
-            </form>
-          </div>
-        )}
-      </div>
-
-      <div className="w-full max-w-2xl rounded-3xl bg-zinc-50 p-6 text-left shadow-sm shadow-zinc-200/60">
-        <p className="text-sm font-medium text-zinc-500">
-          Benachrichtigungen
-        </p>
-        <p className="mt-1 text-sm text-zinc-600">
-          Erhalte eine kurze Push-Benachrichtigung, sobald morgens ein neues
-          Briefing bereitsteht.
-        </p>
-        <div className="mt-3">
-          <PushSubscribeButton />
         </div>
       </div>
     </div>

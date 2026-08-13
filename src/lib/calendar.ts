@@ -1,9 +1,35 @@
+import { todayBerlinIso } from "@/lib/berlinDate";
+
 export type CalendarEvent = {
   id: string;
   title: string;
   start: string; // ISO-Datum/-Zeit
   allDay: boolean;
 };
+
+export function formatEventTime(event: CalendarEvent) {
+  if (event.allDay) return "ganztägig";
+  return new Date(event.start).toLocaleTimeString("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Berlin",
+  });
+}
+
+/**
+ * Filtert auf Termine, die am heutigen Kalendertag (Europe/Berlin)
+ * beginnen - `getUpcomingEvents` liefert sonst auch Termine von morgen
+ * oder später, sobald für heute weniger als `limit` übrig sind.
+ */
+export function getTodaysEvents(events: CalendarEvent[]): CalendarEvent[] {
+  const today = todayBerlinIso();
+  return events.filter((event) => {
+    const eventDay = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Berlin",
+    }).format(new Date(event.start));
+    return eventDay === today;
+  });
+}
 
 type GoogleCalendarApiEvent = {
   id?: string;

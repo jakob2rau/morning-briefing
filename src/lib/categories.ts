@@ -55,15 +55,14 @@ export const NEWS_CATEGORY_ORDER: readonly NewsCategoryId[] = CATEGORY_ORDER.fil
 export const CATEGORIES: Record<BriefingCategoryId, CategoryMeta> = {
   wetter: {
     id: "wetter",
-    label: "Wetter & Termine",
+    label: "Wetter",
     contentHint:
-      "Wetter und die heutigen Termine zusammen - keine Trennung in " +
-      "einen Wetter- und einen Termin-Teil. Genau ein Eintrag in " +
-      "\"items\".",
-    fallbackTeaser: "Keine Wetter- oder Termindaten verfügbar.",
+      "Nur das Wetter (Temperatur, Wetterlage, wie sich der Tag anfühlt) " +
+      "- die Termine werden separat angezeigt und gehören NICHT in " +
+      "diesen Text. Genau ein Eintrag in \"items\".",
+    fallbackTeaser: "Keine Wetterdaten verfügbar.",
     fallbackItemHeadline: "Keine Daten verfügbar",
-    fallbackItemText:
-      "Für Wetter und Termine liegen heute leider keine Daten vor.",
+    fallbackItemText: "Für das Wetter liegen heute leider keine Daten vor.",
     sourceLabel: "Open-Meteo",
     sourceUrl: "https://open-meteo.com",
   },
