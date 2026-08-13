@@ -72,7 +72,10 @@ export default async function Home() {
 
         <div className="mt-4">
           {briefing ? (
-            <BriefingOverview categories={briefing.categories} />
+            <BriefingOverview
+              categories={briefing.categories}
+              weather={briefing.weather}
+            />
           ) : (
             <p className="rounded-3xl bg-zinc-50 p-6 text-sm text-zinc-500">
               Dein Briefing konnte noch nicht erstellt werden. Versuch es

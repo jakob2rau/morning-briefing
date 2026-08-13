@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import type { BriefingCategory } from "@/lib/briefing";
+import type { WeatherSummary } from "@/lib/weather";
 import { CATEGORIES } from "@/lib/categories";
 import { CATEGORY_COLORS, CATEGORY_ICON } from "@/components/categoryVisuals";
 import CategoryStoryModal from "@/components/CategoryStoryModal";
 
 type Props = {
   categories: BriefingCategory[];
+  weather: WeatherSummary | null;
 };
 
-export default function BriefingOverview({ categories }: Props) {
+export default function BriefingOverview({ categories, weather }: Props) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   if (categories.length === 0) return null;
@@ -51,6 +53,7 @@ export default function BriefingOverview({ categories }: Props) {
       {openIndex !== null && (
         <CategoryStoryModal
           categories={categories}
+          weather={weather}
           initialIndex={openIndex}
           onClose={() => setOpenIndex(null)}
         />

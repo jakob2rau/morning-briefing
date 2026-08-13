@@ -31,6 +31,11 @@ export type BriefingCategory = {
 
 export type MorningBriefing = {
   categories: BriefingCategory[];
+  // Rohe Wetter-Detailwerte für die Kachel-Ansicht in der Wetter-Karte -
+  // bewusst getrennt von den generischen `BriefingCategory`-Items, da
+  // diese Struktur nur für "wetter" Sinn ergibt und nicht von Claude
+  // formuliert wird.
+  weather: WeatherSummary | null;
   generatedAt: string; // ISO-Zeitstempel
 };
 
@@ -68,7 +73,12 @@ function buildDataSummary(
   cityName: string,
 ) {
   const weatherLine = weather
-    ? `${Math.round(weather.temperature)}°C, ${weather.description}`
+    ? `${Math.round(weather.temperature)}°C (gefühlt ${Math.round(weather.apparentTemperature)}°C), ` +
+      `${weather.description}, Tagesmin/-max ${Math.round(weather.minTemperature)}°C/` +
+      `${Math.round(weather.maxTemperature)}°C, Niederschlagswahrscheinlichkeit ` +
+      `${Math.round(weather.precipitationProbability)}%, Wind ${Math.round(weather.windSpeed)} km/h, ` +
+      `Luftfeuchtigkeit ${Math.round(weather.humidity)}%, UV-Index ${Math.round(weather.uvIndex)}, ` +
+      `Sonnenaufgang ${weather.sunrise} Uhr, Sonnenuntergang ${weather.sunset} Uhr`
     : "keine Wetterdaten verfügbar";
 
   const eventsBlock = events.length
@@ -365,6 +375,11 @@ async function saveBriefing(briefing: MorningBriefing) {
 
 function isValidBriefing(value: unknown): value is MorningBriefing {
   if (!value || typeof value !== "object") return false;
+  // Ein Blob ohne "weather"-Schlüssel stammt aus der Zeit vor den
+  // Wetter-Detailwerten - als ungültig behandeln, damit er frisch mit dem
+  // aktuellen Format ersetzt wird (weather: null ist dagegen ein valider
+  // Zustand, z. B. bei einem echten Fetch-Fehlschlag).
+  if (!("weather" in value)) return false;
   const categories = (value as { categories?: unknown }).categories;
   if (!Array.isArray(categories) || categories.length !== CATEGORY_ORDER.length) {
     return false;
@@ -433,6 +448,7 @@ export async function generateAndStoreMorningBriefing(
 
     const briefing: MorningBriefing = {
       categories,
+      weather,
       generatedAt: new Date().toISOString(),
     };
 

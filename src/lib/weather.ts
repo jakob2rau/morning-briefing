@@ -1,8 +1,30 @@
 export type WeatherSummary = {
   temperature: number;
+  apparentTemperature: number;
+  minTemperature: number;
+  maxTemperature: number;
+  precipitationProbability: number; // %
+  windSpeed: number; // km/h
+  humidity: number; // %
+  uvIndex: number;
+  sunrise: string; // "HH:MM"
+  sunset: string; // "HH:MM"
   description: string;
   icon: string;
 };
+
+function numberOr(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+// Open-Meteo liefert Sonnenauf-/-untergang als ISO-String in der
+// angefragten Zeitzone (z. B. "2026-08-13T06:13") - nur die Uhrzeit
+// behalten.
+function timeOr(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.length >= 16
+    ? value.slice(11, 16)
+    : fallback;
+}
 
 // WMO Weather interpretation codes, siehe https://open-meteo.com/en/docs
 const WEATHER_CODES: Record<number, { description: string; icon: string }> = {
@@ -44,7 +66,10 @@ export async function getWeather(location: {
     const params = new URLSearchParams({
       latitude: String(location.latitude),
       longitude: String(location.longitude),
-      current: "temperature_2m,weather_code",
+      current:
+        "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m",
+      daily:
+        "temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_probability_max,sunrise,sunset",
       timezone: "Europe/Berlin",
     });
 
@@ -63,7 +88,23 @@ export async function getWeather(location: {
 
     const info = WEATHER_CODES[code] ?? { description: "Unbekannt", icon: "🌡️" };
 
-    return { temperature, description: info.description, icon: info.icon };
+    return {
+      temperature,
+      apparentTemperature: numberOr(data?.current?.apparent_temperature, temperature),
+      minTemperature: numberOr(data?.daily?.temperature_2m_min?.[0], temperature),
+      maxTemperature: numberOr(data?.daily?.temperature_2m_max?.[0], temperature),
+      precipitationProbability: numberOr(
+        data?.daily?.precipitation_probability_max?.[0],
+        0,
+      ),
+      windSpeed: numberOr(data?.current?.wind_speed_10m, 0),
+      humidity: numberOr(data?.current?.relative_humidity_2m, 0),
+      uvIndex: numberOr(data?.daily?.uv_index_max?.[0], 0),
+      sunrise: timeOr(data?.daily?.sunrise?.[0], "–"),
+      sunset: timeOr(data?.daily?.sunset?.[0], "–"),
+      description: info.description,
+      icon: info.icon,
+    };
   } catch {
     return null;
   }

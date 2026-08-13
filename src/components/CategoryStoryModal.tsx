@@ -3,17 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import { IconChevronDown, IconX } from "@tabler/icons-react";
 import type { BriefingCategory } from "@/lib/briefing";
+import type { WeatherSummary } from "@/lib/weather";
 import { CATEGORIES } from "@/lib/categories";
 import { CATEGORY_COLORS, CATEGORY_ICON } from "@/components/categoryVisuals";
+import WeatherStatsGrid from "@/components/WeatherStatsGrid";
 
 type Props = {
   categories: BriefingCategory[];
+  weather: WeatherSummary | null;
   initialIndex: number;
   onClose: () => void;
 };
 
 export default function CategoryStoryModal({
   categories,
+  weather,
   initialIndex,
   onClose,
 }: Props) {
@@ -135,8 +139,12 @@ export default function CategoryStoryModal({
               {/* Abgerundete Content-Karte mit den einzelnen Meldungen als
                   optisch getrennte Blöcke. */}
               <div className="flex-1 overflow-y-auto rounded-t-[2rem] bg-white/95 px-7 pt-8 pb-[calc(env(safe-area-inset-bottom)+2rem)] shadow-[0_-8px_30px_rgba(0,0,0,0.06)]">
-                <div className="mx-auto max-w-xl divide-y divide-zinc-200">
-                  {category.items.map((item, itemIndex) => {
+                <div className="mx-auto max-w-xl">
+                  {category.id === "wetter" && (
+                    <WeatherStatsGrid weather={weather} />
+                  )}
+                  <div className="divide-y divide-zinc-200">
+                    {category.items.map((item, itemIndex) => {
                     const key = `${category.id}-${itemIndex}`;
                     const isExpanded = expandedKeys.has(key);
 
@@ -181,6 +189,7 @@ export default function CategoryStoryModal({
                       </article>
                     );
                   })}
+                </div>
                 </div>
               </div>
             </section>
