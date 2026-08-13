@@ -23,6 +23,9 @@ export default function SettingsForm({ initialSettings }: Props) {
   const [feeds, setFeeds] = useState<Record<NewsCategoryId, string[]>>(
     initialSettings.feeds,
   );
+  const [specialEvents, setSpecialEvents] = useState<
+    { name: string; date: string }[]
+  >(initialSettings.specialEvents);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -45,6 +48,22 @@ export default function SettingsForm({ initialSettings }: Props) {
     }));
   }
 
+  function updateSpecialEvent(index: number, field: "name" | "date", value: string) {
+    setSpecialEvents((current) =>
+      current.map((event, i) =>
+        i === index ? { ...event, [field]: value } : event,
+      ),
+    );
+  }
+
+  function addSpecialEvent() {
+    setSpecialEvents((current) => [...current, { name: "", date: "" }]);
+  }
+
+  function removeSpecialEvent(index: number) {
+    setSpecialEvents((current) => current.filter((_, i) => i !== index));
+  }
+
   function handleSave() {
     setError(null);
     setSaved(false);
@@ -58,6 +77,9 @@ export default function SettingsForm({ initialSettings }: Props) {
               feeds[id].filter((url) => url.trim()),
             ]),
           ) as Record<NewsCategoryId, string[]>,
+          specialEvents: specialEvents
+            .map((event) => ({ name: event.name.trim(), date: event.date }))
+            .filter((event) => event.name && event.date),
         });
 
         if (result.error) setError(result.error);
@@ -144,6 +166,55 @@ export default function SettingsForm({ initialSettings }: Props) {
           </section>
         );
       })}
+
+      <section className="rounded-3xl bg-zinc-50 p-6 shadow-sm shadow-zinc-200/60">
+        <p className="text-sm font-medium text-zinc-900">Besondere Ereignisse</p>
+        <p className="mt-1 text-xs text-zinc-500">
+          Erscheinen als Countdown auf der Startseite, sobald sie höchstens
+          60 Tage entfernt sind.
+        </p>
+
+        <div className="mt-3 flex flex-col gap-2">
+          {specialEvents.map((event, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={event.name}
+                onChange={(e) => updateSpecialEvent(index, "name", e.target.value)}
+                placeholder="Name (z. B. Urlaub Portugal)"
+                className={inputClass}
+              />
+              <input
+                type="date"
+                value={event.date}
+                onChange={(e) => updateSpecialEvent(index, "date", e.target.value)}
+                className={`${inputClass} w-44 shrink-0`}
+              />
+              <button
+                type="button"
+                onClick={() => removeSpecialEvent(index)}
+                aria-label="Ereignis entfernen"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-600 transition-colors hover:bg-black/10"
+              >
+                <IconX size={16} stroke={1.75} />
+              </button>
+            </div>
+          ))}
+          {specialEvents.length === 0 && (
+            <p className="text-xs text-zinc-400">
+              Noch keine besonderen Ereignisse eingetragen.
+            </p>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={addSpecialEvent}
+          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-zinc-600 hover:underline"
+        >
+          <IconPlus size={14} stroke={1.75} /> Ereignis hinzufügen
+        </button>
+      </section>
 
       <div>
         <button

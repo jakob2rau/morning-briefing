@@ -8,12 +8,22 @@ import { NEWS_CATEGORY_ORDER, type NewsCategoryId } from "@/lib/categories";
 export type SaveSettingsInput = {
   cityName: string;
   feeds: Record<NewsCategoryId, string[]>;
+  specialEvents: { name: string; date: string }[];
 };
 
 export type SaveSettingsResult = { error: string | null };
 
 function isValidUrl(value: string) {
   return /^https?:\/\//i.test(value.trim());
+}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function isValidIsoDate(value: string) {
+  return (
+    ISO_DATE_RE.test(value) &&
+    !Number.isNaN(new Date(`${value}T00:00:00Z`).getTime())
+  );
 }
 
 /**
@@ -48,6 +58,10 @@ export async function saveSettingsAction(
     ]),
   ) as Record<NewsCategoryId, string[]>;
 
+  const specialEvents = input.specialEvents
+    .map((event) => ({ name: event.name.trim(), date: event.date.trim() }))
+    .filter((event) => event.name && isValidIsoDate(event.date));
+
   const settings: AppSettings = {
     weather: {
       cityName: geocoded.resolvedName || cityName,
@@ -55,6 +69,7 @@ export async function saveSettingsAction(
       longitude: geocoded.longitude,
     },
     feeds,
+    specialEvents,
   };
 
   try {

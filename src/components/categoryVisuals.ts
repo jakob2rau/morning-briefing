@@ -8,6 +8,7 @@ import {
   IconTrendingUp,
   IconBuildingBank,
   IconBallFootball,
+  IconHistory,
   type Icon,
 } from "@tabler/icons-react";
 import type { BriefingCategoryId } from "@/lib/categories";
@@ -18,6 +19,7 @@ export const CATEGORY_ICON: Record<BriefingCategoryId, Icon> = {
   wirtschaft: IconTrendingUp,
   politik: IconBuildingBank,
   sport: IconBallFootball,
+  tag: IconHistory,
 };
 
 export type CategoryColors = {
@@ -54,5 +56,10 @@ export const CATEGORY_COLORS: Record<BriefingCategoryId, CategoryColors> = {
     bg: "bg-cat-sport-bg",
     badgeBg: "bg-cat-sport-badge",
     accent: "text-cat-sport-accent",
+  },
+  tag: {
+    bg: "bg-cat-tag-bg",
+    badgeBg: "bg-cat-tag-badge",
+    accent: "text-cat-tag-accent",
   },
 };

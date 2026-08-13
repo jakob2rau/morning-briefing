@@ -5,9 +5,14 @@ import {
   generateAndStoreMorningBriefing,
   getStoredMorningBriefing,
 } from "@/lib/briefing";
+import { getStoredSettings } from "@/lib/settings";
+import { getStreak, isDoneToday } from "@/lib/streak";
+import { getUpcomingEventCountdowns } from "@/lib/specialEvents";
 import BriefingOverview from "@/components/BriefingOverview";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
 import RegenerateBriefingButton from "@/components/RegenerateBriefingButton";
+import StreakCard from "@/components/StreakCard";
+import SpecialEventCountdowns from "@/components/SpecialEventCountdowns";
 
 function formatTimestamp(iso: string) {
   return new Date(iso).toLocaleString("de-DE", {
@@ -28,6 +33,12 @@ export default async function Home() {
       .briefing;
   }
 
+  const [settings, streak] = await Promise.all([
+    getStoredSettings(),
+    getStreak(),
+  ]);
+  const countdowns = getUpcomingEventCountdowns(settings.specialEvents);
+
   return (
     <div className="flex flex-1 flex-col items-center gap-8 bg-white px-6 py-16 text-center">
       <div className="relative w-full max-w-2xl">
@@ -41,10 +52,6 @@ export default async function Home() {
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
           Morning Briefing
         </h1>
-        <p className="mx-auto mt-3 max-w-sm text-base text-zinc-600">
-          Hier entsteht deine tägliche Briefing-App. Füge sie über &quot;Zum
-          Home-Bildschirm&quot; deinem iPhone hinzu.
-        </p>
       </div>
 
       <div className="w-full max-w-2xl text-left">
@@ -57,6 +64,12 @@ export default async function Home() {
           <RegenerateBriefingButton />
         </div>
 
+        {countdowns.length > 0 && (
+          <div className="mt-4">
+            <SpecialEventCountdowns countdowns={countdowns} />
+          </div>
+        )}
+
         <div className="mt-4">
           {briefing ? (
             <BriefingOverview categories={briefing.categories} />
@@ -68,6 +81,11 @@ export default async function Home() {
           )}
         </div>
       </div>
+
+      <StreakCard
+        initialCount={streak.count}
+        alreadyDoneToday={isDoneToday(streak)}
+      />
 
       <div className="w-full max-w-2xl rounded-3xl bg-zinc-50 p-6 text-left shadow-sm shadow-zinc-200/60">
         {!session ? (

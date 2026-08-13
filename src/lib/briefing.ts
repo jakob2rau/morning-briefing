@@ -52,6 +52,15 @@ function formatEventTime(event: CalendarEvent) {
   });
 }
 
+function formatTodayForPrompt(): string {
+  return new Date().toLocaleDateString("de-DE", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/Berlin",
+  });
+}
+
 function buildDataSummary(
   weather: WeatherSummary | null,
   news: NewsSummary,
@@ -77,10 +86,22 @@ function buildDataSummary(
   }).join("\n");
 
   return [
+    `Heutiges Datum: ${formatTodayForPrompt()}`,
     `Wetter in ${cityName}: ${weatherLine}`,
     `Termine heute:\n${eventsBlock}`,
     `Nachrichten (Titel und Link):\n${newsBlock}`,
   ].join("\n\n");
+}
+
+const CATEGORY_COUNT_WORDS_DE: Record<number, string> = {
+  4: "vier",
+  5: "fünf",
+  6: "sechs",
+  7: "sieben",
+};
+
+function categoryCountWord(): string {
+  return CATEGORY_COUNT_WORDS_DE[CATEGORY_ORDER.length] ?? String(CATEGORY_ORDER.length);
 }
 
 function buildSystemPrompt(): string {
@@ -88,18 +109,20 @@ function buildSystemPrompt(): string {
     const category = CATEGORIES[id];
     return `${index + 1}. ${category.label} (id: "${category.id}"): ${category.contentHint}`;
   }).join("\n");
+  const countWord = categoryCountWord();
 
   return (
     "Du erstellst ein sehr ausführliches, persönliches Morgenbriefing " +
-    "auf Deutsch, aufgeteilt in genau fünf Kategorien. Rufe dafür das " +
-    `Tool "${SUBMIT_BRIEFING_TOOL_NAME}" auf und liefere für jede der ` +
-    "folgenden fünf Kategorien einen Eintrag - in dieser Reihenfolge:\n" +
+    `auf Deutsch, aufgeteilt in genau ${countWord} Kategorien. Rufe ` +
+    `dafür das Tool "${SUBMIT_BRIEFING_TOOL_NAME}" auf und liefere für ` +
+    `jede der folgenden ${countWord} Kategorien einen Eintrag - in ` +
+    "dieser Reihenfolge:\n" +
     categoryInstructions +
     "\n\nJeder Kategorie-Eintrag besteht aus:\n" +
     "- \"teaser\": 1-2 kurze, eigenständige Sätze für eine Vorschau-Karte, " +
     "als Zusammenfassung der ganzen Kategorie.\n" +
-    "- \"items\": eine Liste einzelner Meldungen (bei \"wetter\" genau " +
-    "eine, sonst 2-3). Jede Meldung besteht aus:\n" +
+    "- \"items\": eine Liste einzelner Meldungen (bei \"wetter\" und " +
+    "\"tag\" genau eine, sonst 2-3). Jede Meldung besteht aus:\n" +
     "  - \"headline\": eine kurze, eigenständig formulierte Überschrift " +
     "(nicht einfach die Original-Schlagzeile kopieren).\n" +
     "  - \"text\": 2-3 Sätze Einordnung - was ist passiert, und warum " +
@@ -113,20 +136,20 @@ function buildSystemPrompt(): string {
     "\"TechCrunch\").\n" +
     "  - \"sourceUrl\": bei Nachrichten-Kategorien EXAKT einer der oben " +
     "bereitgestellten Links zu dieser Meldung - nicht selbst erfinden " +
-    "oder verändern. Bei \"wetter\" kannst du \"sourceLabel\" und " +
-    "\"sourceUrl\" leer lassen.\n\n" +
-    "Liefere IMMER alle fünf Kategorien mit mindestens einem Eintrag in " +
-    "\"items\". Wenn zu einer Kategorie an diesem Tag wirklich keine " +
-    "Daten vorliegen, liefere einen einzelnen Eintrag, der das knapp " +
-    "erklärt - lass die Kategorie aber niemals ganz weg. Schreibe warm " +
-    "und direkt."
+    "oder verändern. Bei \"wetter\" und \"tag\" kannst du \"sourceLabel\" " +
+    "und \"sourceUrl\" leer lassen.\n\n" +
+    `Liefere IMMER alle ${countWord} Kategorien mit mindestens einem ` +
+    "Eintrag in \"items\". Wenn zu einer Kategorie an diesem Tag " +
+    "wirklich keine Daten vorliegen, liefere einen einzelnen Eintrag, " +
+    "der das knapp erklärt - lass die Kategorie aber niemals ganz weg. " +
+    "Schreibe warm und direkt."
   );
 }
 
 function buildBriefingTool(): Anthropic.Tool {
   return {
     name: SUBMIT_BRIEFING_TOOL_NAME,
-    description: "Liefert das strukturierte Morgenbriefing als fünf Kategorien.",
+    description: `Liefert das strukturierte Morgenbriefing als ${categoryCountWord()} Kategorien.`,
     input_schema: {
       type: "object",
       properties: {

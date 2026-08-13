@@ -7,9 +7,15 @@ export type WeatherLocation = {
   longitude: number;
 };
 
+export type SpecialEvent = {
+  name: string;
+  date: string; // ISO yyyy-mm-dd
+};
+
 export type AppSettings = {
   weather: WeatherLocation;
   feeds: Record<NewsCategoryId, string[]>;
+  specialEvents: SpecialEvent[];
 };
 
 const SETTINGS_BLOB_PATH = "app-settings.json";
@@ -29,6 +35,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     ],
     sport: ["https://www.sportschau.de/index~rss2.xml"],
   },
+  specialEvents: [],
 };
 
 function isValidUrl(value: unknown): value is string {
@@ -39,6 +46,35 @@ function normalizeFeedList(value: unknown, fallback: string[]): string[] {
   if (!Array.isArray(value)) return fallback;
   const urls = value.filter(isValidUrl).map((url) => url.trim());
   return urls.length > 0 ? urls : fallback;
+}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function isValidIsoDate(value: unknown): value is string {
+  if (typeof value !== "string" || !ISO_DATE_RE.test(value)) return false;
+  const [y, m, d] = value.split("-").map(Number);
+  // Rundtrip-Check über Date.UTC, damit z. B. "2026-02-30" (kalendarisch
+  // ungültig) nicht durchrutscht - Date.UTC "korrigiert" solche Werte
+  // sonst still auf den nächsten validen Tag.
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return (
+    date.getUTCFullYear() === y &&
+    date.getUTCMonth() === m - 1 &&
+    date.getUTCDate() === d
+  );
+}
+
+function normalizeSpecialEvents(value: unknown): SpecialEvent[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry): SpecialEvent | null => {
+      if (!entry || typeof entry !== "object") return null;
+      const { name, date } = entry as Record<string, unknown>;
+      const trimmedName = typeof name === "string" ? name.trim() : "";
+      if (!trimmedName || !isValidIsoDate(date)) return null;
+      return { name: trimmedName, date };
+    })
+    .filter((event): event is SpecialEvent => event !== null);
 }
 
 /**
@@ -83,7 +119,9 @@ export function normalizeSettings(value: unknown): AppSettings {
     ]),
   ) as Record<NewsCategoryId, string[]>;
 
-  return { weather, feeds };
+  const specialEvents = normalizeSpecialEvents(raw.specialEvents);
+
+  return { weather, feeds, specialEvents };
 }
 
 /**

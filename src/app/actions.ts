@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { generateAndStoreMorningBriefing } from "@/lib/briefing";
+import { markDoneToday, type StreakData } from "@/lib/streak";
 
 export type RegenerateResult = { error: string | null };
 
@@ -22,4 +23,27 @@ export async function regenerateBriefing(): Promise<RegenerateResult> {
 
   revalidatePath("/");
   return { error: null };
+}
+
+export type MarkDayDoneResult =
+  | { streak: StreakData; error: null }
+  | { streak: null; error: string };
+
+/**
+ * Trägt den heutigen Tag im Streak-Zähler als erledigt ein (siehe
+ * src/lib/streak.ts für die "in Folge"-Logik inkl. Schutz vor doppelter
+ * Erhöhung bei mehrfachem Klick am selben Tag).
+ */
+export async function markDayDoneAction(): Promise<MarkDayDoneResult> {
+  try {
+    const streak = await markDoneToday();
+    revalidatePath("/");
+    return { streak, error: null };
+  } catch (error) {
+    console.error("Fehler beim Speichern des Tages-Status", error);
+    return {
+      streak: null,
+      error: "Konnte nicht gespeichert werden. Versuch es gleich noch einmal.",
+    };
+  }
 }

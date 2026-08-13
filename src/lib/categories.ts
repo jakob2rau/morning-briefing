@@ -8,11 +8,14 @@ export type BriefingCategoryId =
   | "tech"
   | "wirtschaft"
   | "politik"
-  | "sport";
+  | "sport"
+  | "tag";
 
-// Die vier News-basierten Kategorien (alles außer "wetter") - genau die,
-// für die sich in den Einstellungen RSS-Feeds konfigurieren lassen.
-export type NewsCategoryId = Exclude<BriefingCategoryId, "wetter">;
+// Die vier News-basierten Kategorien (alles außer "wetter" und "tag") -
+// genau die, für die sich in den Einstellungen RSS-Feeds konfigurieren
+// lassen. "tag" ("Auf den Tag genau") ist KI-generiert aus dem heutigen
+// Datum, nicht aus RSS-Feeds.
+export type NewsCategoryId = Exclude<BriefingCategoryId, "wetter" | "tag">;
 
 export type CategoryMeta = {
   id: BriefingCategoryId;
@@ -40,12 +43,13 @@ export const CATEGORY_ORDER: readonly BriefingCategoryId[] = [
   "wirtschaft",
   "politik",
   "sport",
+  "tag",
 ];
 
-// Dieselbe Reihenfolge ohne "wetter" - für die Feed-Einstellungen und den
-// Nachrichten-Abschnitt des Claude-Prompts.
+// Dieselbe Reihenfolge ohne "wetter" und "tag" - für die Feed-Einstellungen
+// und den Nachrichten-Abschnitt des Claude-Prompts.
 export const NEWS_CATEGORY_ORDER: readonly NewsCategoryId[] = CATEGORY_ORDER.filter(
-  (id): id is NewsCategoryId => id !== "wetter",
+  (id): id is NewsCategoryId => id !== "wetter" && id !== "tag",
 );
 
 export const CATEGORIES: Record<BriefingCategoryId, CategoryMeta> = {
@@ -110,5 +114,21 @@ export const CATEGORIES: Record<BriefingCategoryId, CategoryMeta> = {
     fallbackItemText: "Zum Sport gibt es heute keine Meldungen.",
     sourceLabel: "sportschau.de",
     sourceUrl: "https://www.sportschau.de",
+  },
+  tag: {
+    id: "tag",
+    label: "Auf den Tag genau",
+    contentHint:
+      "Ein historisches Ereignis, das genau an diesem Kalendertag (Tag " +
+      "und Monat aus \"Heutiges Datum\" oben, egal in welchem Jahr) " +
+      "stattgefunden hat - ein wirklich interessanter, überprüfbarer " +
+      "Fakt, keine Erfindung. Nenne das Jahr im Text. Genau ein Eintrag " +
+      "in \"items\".",
+    fallbackTeaser: "Heute kein historischer Fakt verfügbar.",
+    fallbackItemHeadline: "Kein Fakt verfügbar",
+    fallbackItemText:
+      "Für den heutigen Tag liegt leider kein historischer Fakt vor.",
+    sourceLabel: "Wikipedia",
+    sourceUrl: "https://de.wikipedia.org/wiki/Wikipedia:Hauptseite",
   },
 };
