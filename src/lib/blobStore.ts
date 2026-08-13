@@ -11,7 +11,13 @@ import { get, put } from "@vercel/blob";
 
 export async function readJsonBlob<T>(pathname: string): Promise<T | null> {
   try {
-    const result = await get(pathname, { access: "private" });
+    // useCache: false - @vercel/blob's get() serviert sonst standardmäßig
+    // aus dem CDN-Cache und kann kurz nach einem writeJsonBlob() (z. B.
+    // gerade gespeicherte Einstellungen) noch einen veralteten Stand
+    // zurückgeben. Für diese Ein-Nutzer-App mit geringem Traffic ist die
+    // Garantie auf den aktuellen Stand wichtiger als die etwas schnellere
+    // CDN-Antwort.
+    const result = await get(pathname, { access: "private", useCache: false });
     if (!result || result.statusCode !== 200) return null;
 
     const text = await new Response(result.stream).text();
