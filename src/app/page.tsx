@@ -3,6 +3,7 @@ import {
   generateAndStoreMorningBriefing,
   getStoredMorningBriefing,
 } from "@/lib/briefing";
+import BriefingOverview from "@/components/BriefingOverview";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
 import RegenerateBriefingButton from "@/components/RegenerateBriefingButton";
 
@@ -25,24 +26,21 @@ export default async function Home() {
       .briefing;
   }
 
-  const paragraphs =
-    briefing?.text.split(/\n\s*\n/).filter((p) => p.trim().length > 0) ?? [];
-
   return (
-    <div className="flex flex-1 flex-col items-center gap-8 bg-zinc-50 px-6 py-16 text-center dark:bg-zinc-900">
+    <div className="flex flex-1 flex-col items-center gap-8 bg-white px-6 py-16 text-center">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
           Morning Briefing
         </h1>
-        <p className="mt-3 max-w-sm text-base text-zinc-600 dark:text-zinc-400">
+        <p className="mt-3 max-w-sm text-base text-zinc-600">
           Hier entsteht deine tägliche Briefing-App. Füge sie über &quot;Zum
           Home-Bildschirm&quot; deinem iPhone hinzu.
         </p>
       </div>
 
-      <div className="w-full max-w-xl rounded-2xl border border-zinc-200 bg-white p-8 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-800">
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+      <div className="w-full max-w-2xl text-left">
+        <div className="flex items-center justify-between gap-4 px-1">
+          <p className="text-sm font-medium text-zinc-500">
             {briefing
               ? `Erstellt am ${formatTimestamp(briefing.generatedAt)} Uhr`
               : "Dein Morgenbriefing"}
@@ -50,24 +48,22 @@ export default async function Home() {
           <RegenerateBriefingButton />
         </div>
 
-        {paragraphs.length > 0 ? (
-          <div className="mt-4 space-y-4 text-base leading-relaxed text-zinc-800 dark:text-zinc-100">
-            {paragraphs.map((paragraph, index) => (
-              <p key={index}>{paragraph}</p>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
-            Dein Briefing konnte noch nicht erstellt werden. Versuch es über
-            &quot;Neu erstellen&quot; erneut.
-          </p>
-        )}
+        <div className="mt-4">
+          {briefing ? (
+            <BriefingOverview categories={briefing.categories} />
+          ) : (
+            <p className="rounded-3xl bg-zinc-50 p-6 text-sm text-zinc-500">
+              Dein Briefing konnte noch nicht erstellt werden. Versuch es
+              über &quot;Neu erstellen&quot; erneut.
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="w-full max-w-xl rounded-2xl border border-zinc-200 bg-white p-6 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-800">
+      <div className="w-full max-w-2xl rounded-3xl bg-zinc-50 p-6 text-left shadow-sm shadow-zinc-200/60">
         {!session ? (
           <>
-            <p className="text-sm text-zinc-600 dark:text-zinc-300">
+            <p className="text-sm text-zinc-600">
               Melde dich mit Google an, damit deine Kalendertermine ins
               Briefing einfließen.
             </p>
@@ -80,7 +76,7 @@ export default async function Home() {
             >
               <button
                 type="submit"
-                className="flex h-10 w-full items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+                className="flex h-10 w-full items-center justify-center rounded-full bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
               >
                 Mit Google anmelden
               </button>
@@ -88,7 +84,7 @@ export default async function Home() {
           </>
         ) : (
           <div className="flex items-center justify-between">
-            <p className="text-sm text-zinc-600 dark:text-zinc-300">
+            <p className="text-sm text-zinc-600">
               Mit Google angemeldet – Termine fließen ins Briefing ein.
             </p>
             <form
@@ -99,7 +95,7 @@ export default async function Home() {
             >
               <button
                 type="submit"
-                className="text-xs text-zinc-500 hover:underline dark:text-zinc-400"
+                className="text-xs text-zinc-500 hover:underline"
               >
                 Abmelden
               </button>
@@ -108,11 +104,11 @@ export default async function Home() {
         )}
       </div>
 
-      <div className="w-full max-w-xl rounded-2xl border border-zinc-200 bg-white p-6 text-left shadow-sm dark:border-zinc-800 dark:bg-zinc-800">
-        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+      <div className="w-full max-w-2xl rounded-3xl bg-zinc-50 p-6 text-left shadow-sm shadow-zinc-200/60">
+        <p className="text-sm font-medium text-zinc-500">
           Benachrichtigungen
         </p>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+        <p className="mt-1 text-sm text-zinc-600">
           Erhalte eine kurze Push-Benachrichtigung, sobald morgens ein neues
           Briefing bereitsteht.
         </p>

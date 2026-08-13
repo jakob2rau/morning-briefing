@@ -163,7 +163,7 @@ export default function PushSubscribeButton() {
 
   if (status === "unsupported") {
     body = (
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="text-xs text-zinc-500">
         Push-Benachrichtigungen werden von diesem Browser nicht unterstützt.
         Auf dem iPhone: Seite zuerst über &quot;Zum Home-Bildschirm&quot;
         hinzufügen und von dort öffnen.
@@ -171,7 +171,7 @@ export default function PushSubscribeButton() {
     );
   } else if (status === "denied") {
     body = (
-      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+      <p className="text-xs text-zinc-500">
         Benachrichtigungen sind für diese Seite blockiert. Erlaube sie in
         den Browser-/System-Einstellungen, um sie hier zu aktivieren.
       </p>
@@ -179,14 +179,14 @@ export default function PushSubscribeButton() {
   } else if (status === "error") {
     body = (
       <div className="space-y-2">
-        <p className="text-xs text-red-600 dark:text-red-400">
+        <p className="text-xs text-red-600">
           Beim Aktivieren ist ein Fehler aufgetreten
           {lastError ? `: ${lastError}` : "."}
         </p>
         <button
           type="button"
           onClick={handleSubscribe}
-          className="flex h-10 w-full items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+          className="flex h-10 w-full items-center justify-center rounded-full bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
         >
           Erneut versuchen
         </button>
@@ -197,7 +197,7 @@ export default function PushSubscribeButton() {
       <button
         type="button"
         onClick={handleUnsubscribe}
-        className="text-xs text-zinc-500 hover:underline dark:text-zinc-400"
+        className="text-xs text-zinc-500 hover:underline"
       >
         Benachrichtigungen aktiviert ✓ – deaktivieren
       </button>
@@ -208,7 +208,7 @@ export default function PushSubscribeButton() {
         type="button"
         onClick={handleSubscribe}
         disabled={status === "busy"}
-        className="flex h-10 w-full items-center justify-center rounded-full bg-foreground px-5 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
+        className="flex h-10 w-full items-center justify-center rounded-full bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50"
       >
         {status === "busy" ? "Wird aktiviert…" : "Benachrichtigungen erlauben"}
       </button>

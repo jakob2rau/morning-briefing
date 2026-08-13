@@ -53,35 +53,24 @@ export async function removePushSubscription(endpoint: string) {
 }
 
 /**
- * Baut aus dem Briefing-Text einen kurzen Teaser-Satz für die
- * Push-Benachrichtigung (überspringt eine reine Begrüßung wie
- * "Guten Morgen!" und kürzt bei Bedarf).
- */
-export function buildBriefingTeaser(text: string): string {
-  const firstParagraph = text.split(/\n\s*\n/)[0]?.trim() ?? text.trim();
-  const sentences = firstParagraph.match(/[^.!?]+[.!?]+/g) ?? [firstParagraph];
-  const meaningful = sentences.find((sentence) => sentence.trim().length > 12);
-  const teaser = (meaningful ?? sentences[0] ?? firstParagraph).trim();
-
-  return teaser.length > 140 ? `${teaser.slice(0, 137).trimEnd()}…` : teaser;
-}
-
-/**
- * Verschickt eine Push-Benachrichtigung mit Teaser-Text an alle
- * gespeicherten Subscriptions. Nicht mehr gültige Subscriptions (z. B.
+ * Verschickt eine Push-Benachrichtigung mit dem übergebenen Teaser-Text an
+ * alle gespeicherten Subscriptions. Nicht mehr gültige Subscriptions (z. B.
  * abgemeldete Geräte) werden dabei automatisch entfernt.
  */
-export async function sendBriefingPushNotification(
-  briefingText: string,
-): Promise<void> {
+export async function sendBriefingPushNotification(teaser: string): Promise<void> {
   const subscriptions = await readSubscriptions();
   if (subscriptions.length === 0) return;
 
   configureVapid();
 
+  // Letzte defensive Längenbegrenzung, unabhängig davon, wie lang der
+  // Teaser vom Aufrufer geliefert wird.
+  const body =
+    teaser.length > 140 ? `${teaser.slice(0, 137).trimEnd()}…` : teaser;
+
   const payload = JSON.stringify({
     title: "Dein Morgenbriefing ist da ☀️",
-    body: buildBriefingTeaser(briefingText),
+    body,
     url: "/",
   });
 

@@ -34,13 +34,11 @@ export default function RegenerateBriefingButton() {
         type="button"
         onClick={handleClick}
         disabled={isPending}
-        className="shrink-0 text-xs text-zinc-500 hover:underline disabled:opacity-50 dark:text-zinc-400"
+        className="shrink-0 text-xs text-zinc-500 hover:underline disabled:opacity-50"
       >
         {isPending ? "Wird aktualisiert…" : "Neu erstellen"}
       </button>
-      {error && (
-        <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>
-      )}
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
   );
 }
