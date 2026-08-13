@@ -45,18 +45,18 @@ export default async function Home() {
 
   return (
     <div className="flex flex-1 flex-col items-center gap-8 bg-white px-6 py-16 text-center">
-      <div className="relative w-full max-w-2xl">
+      <div className="flex w-full max-w-2xl items-center gap-3">
         <StreakBadge count={streak.count} />
+        <h1 className="flex-1 text-center text-3xl font-semibold tracking-tight text-zinc-900">
+          Morning Briefing
+        </h1>
         <Link
           href="/settings"
           aria-label="Einstellungen"
-          className="absolute top-0 right-1 flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-zinc-700 transition-colors hover:bg-black/10"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/5 text-zinc-700 transition-colors hover:bg-black/10"
         >
           <IconSettings size={18} stroke={1.75} />
         </Link>
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
-          Morning Briefing
-        </h1>
       </div>
 
       <div className="w-full max-w-2xl text-left">

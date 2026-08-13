@@ -4,7 +4,6 @@ import { auth, signIn, signOut } from "@/auth";
 import { getStoredSettings } from "@/lib/settings";
 import SettingsForm from "@/components/SettingsForm";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
-import { resetStreakAction } from "@/app/actions";
 
 // Immer live aus dem Blob lesen statt beim Build einzufrieren - die Seite
 // zeigt sonst nach dem ersten Deploy dauerhaft die Default-Werte, bis die
@@ -92,21 +91,6 @@ export default async function SettingsPage() {
         <div className="mt-3">
           <PushSubscribeButton />
         </div>
-      </div>
-
-      {/* Nur zu Testzwecken - Animation beliebig oft ausprobieren können. */}
-      <div className="w-full max-w-2xl text-left">
-        <p className="text-xs text-zinc-400">
-          Nur zum Testen der Animation.
-        </p>
-        <form action={resetStreakAction} className="mt-1">
-          <button
-            type="submit"
-            className="text-xs text-zinc-400 hover:underline"
-          >
-            Streak zurücksetzen
-          </button>
-        </form>
       </div>
     </div>
   );
