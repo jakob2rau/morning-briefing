@@ -296,19 +296,36 @@ async function callClaude(dataSummary: string): Promise<BriefingCategory[] | nul
       block.type === "tool_use" && block.name === SUBMIT_BRIEFING_TOOL_NAME,
   );
 
-  // Diagnose-Logging: hilft zu unterscheiden, ob Claude vorzeitig
-  // abgebrochen hat (z. B. stop_reason "max_tokens") oder ob das Tool
-  // schlicht nicht aufgerufen wurde.
-  console.error(
-    "callClaude diagnostics",
-    JSON.stringify({
-      stopReason: response.stop_reason,
-      hasToolUse: Boolean(toolUse),
-      inputPreview: toolUse ? JSON.stringify(toolUse.input).slice(0, 2000) : null,
-    }),
-  );
+  // Nur bei einem auffälligen Abschluss loggen (z. B. durch "max_tokens"
+  // abgeschnitten) - hilft, einen künftigen Fehlschlag einzuordnen, ohne
+  // bei jedem normalen Lauf Error-Logs zu erzeugen.
+  if (response.stop_reason !== "tool_use" || !toolUse) {
+    console.error(
+      "callClaude: unerwarteter Antwortabschluss",
+      JSON.stringify({
+        stopReason: response.stop_reason,
+        hasToolUse: Boolean(toolUse),
+      }),
+    );
+  }
 
   if (!toolUse) return null;
+
+  const rawCategoriesLength = Array.isArray(
+    (toolUse.input as { categories?: unknown })?.categories,
+  )
+    ? ((toolUse.input as { categories: unknown[] }).categories.length)
+    : 0;
+
+  if (rawCategoriesLength === 0) {
+    // Tool wurde aufgerufen, aber ohne verwertbare "categories" - z. B.
+    // wenn Claude aus irgendeinem Grund ein leeres Array liefert. Landet
+    // sonst unsichtbar als lauter Platzhalter-Kategorien im Ergebnis.
+    console.error(
+      "callClaude: Tool-Input enthält keine categories",
+      JSON.stringify(toolUse.input).slice(0, 500),
+    );
+  }
 
   return normalizeCategories(toolUse.input);
 }
