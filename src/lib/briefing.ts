@@ -72,7 +72,10 @@ async function callClaude(dataSummary: string): Promise<string | null> {
       "3. Wirtschaft: genauso ausführlich wie Absatz 2, ebenfalls " +
       "2-3 Meldungen mit je 2-3 Sätzen Einordnung.\n" +
       "4. Politik: genauso ausführlich wie Absatz 2, ebenfalls " +
-      "2-3 Meldungen mit je 2-3 Sätzen Einordnung.\n" +
+      "2-3 Meldungen mit je 2-3 Sätzen Einordnung - gemischt aus " +
+      "deutscher und internationaler Politik (Quellen \"Politik " +
+      "(Deutschland)\" und \"Politik (International)\"), je nachdem was " +
+      "an dem Tag relevanter ist.\n" +
       "5. Sport: genauso ausführlich wie Absatz 2, ebenfalls " +
       "2-3 Meldungen mit je 2-3 Sätzen Einordnung.\n" +
       "Nutze für die vier Nachrichten-Absätze die bereitgestellten " +

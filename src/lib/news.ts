@@ -24,8 +24,13 @@ export const NEWS_SOURCES: NewsSource[] = [
   },
   {
     id: "politik",
-    label: "Politik",
+    label: "Politik (Deutschland)",
     feedUrl: "https://www.tagesschau.de/inland/innenpolitik/index~rss2.xml",
+  },
+  {
+    id: "politik-international",
+    label: "Politik (International)",
+    feedUrl: "https://www.tagesschau.de/ausland/index~rss2.xml",
   },
   {
     id: "sport",
