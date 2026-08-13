@@ -10,10 +10,17 @@ import {
   type BriefingCategoryId,
 } from "@/lib/categories";
 
+export type BriefingItem = {
+  headline: string;
+  text: string;
+  sourceLabel: string;
+  sourceUrl: string;
+};
+
 export type BriefingCategory = {
   id: BriefingCategoryId;
   teaser: string;
-  fullText: string;
+  items: BriefingItem[];
 };
 
 export type MorningBriefing = {
@@ -55,7 +62,9 @@ function buildDataSummary(
   const newsBlock = news
     .map((source) => {
       const headlines = source.headlines.length
-        ? source.headlines.map((headline) => `  - ${headline.title}`).join("\n")
+        ? source.headlines
+            .map((headline) => `  - ${headline.title} (${headline.link})`)
+            .join("\n")
         : "  - keine Schlagzeilen verfügbar";
       return `${source.label}:\n${headlines}`;
     })
@@ -64,7 +73,7 @@ function buildDataSummary(
   return [
     `Wetter in Mainz: ${weatherLine}`,
     `Termine heute:\n${eventsBlock}`,
-    `Nachrichten:\n${newsBlock}`,
+    `Nachrichten (Titel und Link):\n${newsBlock}`,
   ].join("\n\n");
 }
 
@@ -80,18 +89,26 @@ function buildSystemPrompt(): string {
     `Tool "${SUBMIT_BRIEFING_TOOL_NAME}" auf und liefere für jede der ` +
     "folgenden fünf Kategorien einen Eintrag - in dieser Reihenfolge:\n" +
     categoryInstructions +
-    "\n\nJeder Eintrag besteht aus:\n" +
-    "- \"teaser\": 1-2 kurze, eigenständige Sätze für eine Vorschau-Karte. " +
-    "Keine Kopie des ersten Satzes von \"fullText\", sondern eine " +
-    "unabhängige Kurzfassung.\n" +
-    "- \"fullText\": der ausführliche Text zur Kategorie als Fließtext, " +
-    "ohne Überschriften und ohne Aufzählungszeichen. Nutze die " +
-    "bereitgestellten Schlagzeilen der jeweiligen Kategorie und " +
-    "verarbeite mehrere davon, nicht nur die erste.\n\n" +
-    "Liefere IMMER alle fünf Kategorien. Wenn zu einer Kategorie an " +
-    "diesem Tag wirklich keine Daten vorliegen, schreibe knapp, dass es " +
-    "dazu heute keine Meldungen gibt - lass die Kategorie aber niemals " +
-    "weg. Schreibe warm und direkt."
+    "\n\nJeder Kategorie-Eintrag besteht aus:\n" +
+    "- \"teaser\": 1-2 kurze, eigenständige Sätze für eine Vorschau-Karte, " +
+    "als Zusammenfassung der ganzen Kategorie.\n" +
+    "- \"items\": eine Liste einzelner Meldungen (bei \"wetter\" genau " +
+    "eine, sonst 2-3). Jede Meldung besteht aus:\n" +
+    "  - \"headline\": eine kurze, eigenständig formulierte Überschrift " +
+    "(nicht einfach die Original-Schlagzeile kopieren).\n" +
+    "  - \"text\": 2-3 Sätze Einordnung - was ist passiert, und warum " +
+    "ist es relevant. Fließtext ohne Aufzählungszeichen.\n" +
+    "  - \"sourceLabel\": Name der Quelle (z. B. \"tagesschau.de\", " +
+    "\"TechCrunch\").\n" +
+    "  - \"sourceUrl\": bei Nachrichten-Kategorien EXAKT einer der oben " +
+    "bereitgestellten Links zu dieser Meldung - nicht selbst erfinden " +
+    "oder verändern. Bei \"wetter\" kannst du \"sourceLabel\" und " +
+    "\"sourceUrl\" leer lassen.\n\n" +
+    "Liefere IMMER alle fünf Kategorien mit mindestens einem Eintrag in " +
+    "\"items\". Wenn zu einer Kategorie an diesem Tag wirklich keine " +
+    "Daten vorliegen, liefere einen einzelnen Eintrag, der das knapp " +
+    "erklärt - lass die Kategorie aber niemals ganz weg. Schreibe warm " +
+    "und direkt."
   );
 }
 
@@ -109,9 +126,21 @@ function buildBriefingTool(): Anthropic.Tool {
             properties: {
               id: { type: "string", enum: [...CATEGORY_ORDER] },
               teaser: { type: "string" },
-              fullText: { type: "string" },
+              items: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    headline: { type: "string" },
+                    text: { type: "string" },
+                    sourceLabel: { type: "string" },
+                    sourceUrl: { type: "string" },
+                  },
+                  required: ["headline", "text"],
+                },
+              },
             },
-            required: ["id", "teaser", "fullText"],
+            required: ["id", "teaser", "items"],
           },
         },
       },
@@ -120,12 +149,50 @@ function buildBriefingTool(): Anthropic.Tool {
   };
 }
 
+function isValidSourceUrl(value: unknown): value is string {
+  return typeof value === "string" && /^https?:\/\//i.test(value.trim());
+}
+
+/**
+ * Validiert und normalisiert eine einzelne Meldung. Fehlt ein gültiger
+ * Quellenlink (leer, fehlt oder von Claude erfunden statt aus den
+ * Rohdaten kopiert), wird auf den generischen Kategorie-Link
+ * zurückgefallen statt einen potenziell kaputten/falschen Link
+ * anzuzeigen.
+ */
+function normalizeItem(
+  entry: unknown,
+  category: BriefingCategoryId,
+): BriefingItem | null {
+  if (!entry || typeof entry !== "object") return null;
+  const { headline, text, sourceLabel, sourceUrl } = entry as Record<
+    string,
+    unknown
+  >;
+
+  const trimmedHeadline = typeof headline === "string" ? headline.trim() : "";
+  const trimmedText = typeof text === "string" ? text.trim() : "";
+  if (!trimmedHeadline && !trimmedText) return null;
+
+  const fallback = CATEGORIES[category];
+  const trimmedSourceLabel =
+    typeof sourceLabel === "string" ? sourceLabel.trim() : "";
+
+  return {
+    headline: trimmedHeadline || fallback.fallbackItemHeadline,
+    text: trimmedText || fallback.fallbackItemText,
+    sourceLabel: trimmedSourceLabel || fallback.sourceLabel,
+    sourceUrl: isValidSourceUrl(sourceUrl) ? sourceUrl.trim() : fallback.sourceUrl,
+  };
+}
+
 /**
  * Validiert und normalisiert den (untypisierten) Tool-Input von Claude:
  * unbekannte/ungültige Einträge werden verworfen, Duplikate nach `id`
  * entfernt, und das Ergebnis wird in fester `CATEGORY_ORDER`-Reihenfolge
- * mit exakt fünf Einträgen zurückgegeben - fehlende Kategorien werden mit
- * einem Platzhaltertext aufgefüllt, damit im Grid nie eine Karte fehlt.
+ * mit exakt fünf Einträgen zurückgegeben - fehlende Kategorien bzw.
+ * Kategorien ohne verwertbare Meldungen werden mit einem
+ * Platzhalter-Eintrag aufgefüllt, damit im Grid nie eine Karte fehlt.
  */
 function normalizeCategories(input: unknown): BriefingCategory[] {
   const rawCategories =
@@ -139,33 +206,55 @@ function normalizeCategories(input: unknown): BriefingCategory[] {
 
   for (const entry of rawCategories) {
     if (!entry || typeof entry !== "object") continue;
-    const { id, teaser, fullText } = entry as Record<string, unknown>;
+    const { id, teaser, items } = entry as Record<string, unknown>;
 
     if (typeof id !== "string" || !CATEGORY_ORDER.includes(id as BriefingCategoryId)) {
       continue;
     }
-    if (byId.has(id as BriefingCategoryId)) continue;
+    const categoryId = id as BriefingCategoryId;
+    if (byId.has(categoryId)) continue;
+
+    const normalizedItems = (Array.isArray(items) ? items : [])
+      .map((item) => normalizeItem(item, categoryId))
+      .filter((item): item is BriefingItem => item !== null);
 
     const trimmedTeaser = typeof teaser === "string" ? teaser.trim() : "";
-    const trimmedFullText = typeof fullText === "string" ? fullText.trim() : "";
-    if (!trimmedTeaser && !trimmedFullText) continue;
+    if (!trimmedTeaser && normalizedItems.length === 0) continue;
 
-    byId.set(id as BriefingCategoryId, {
-      id: id as BriefingCategoryId,
-      teaser: trimmedTeaser || CATEGORIES[id as BriefingCategoryId].fallbackTeaser,
-      fullText:
-        trimmedFullText || CATEGORIES[id as BriefingCategoryId].fallbackFullText,
+    byId.set(categoryId, {
+      id: categoryId,
+      teaser: trimmedTeaser || CATEGORIES[categoryId].fallbackTeaser,
+      items:
+        normalizedItems.length > 0
+          ? normalizedItems
+          : [
+              {
+                headline: CATEGORIES[categoryId].fallbackItemHeadline,
+                text: CATEGORIES[categoryId].fallbackItemText,
+                sourceLabel: CATEGORIES[categoryId].sourceLabel,
+                sourceUrl: CATEGORIES[categoryId].sourceUrl,
+              },
+            ],
     });
   }
 
-  return CATEGORY_ORDER.map(
-    (id) =>
+  return CATEGORY_ORDER.map((id) => {
+    const category = CATEGORIES[id];
+    return (
       byId.get(id) ?? {
         id,
-        teaser: CATEGORIES[id].fallbackTeaser,
-        fullText: CATEGORIES[id].fallbackFullText,
-      },
-  );
+        teaser: category.fallbackTeaser,
+        items: [
+          {
+            headline: category.fallbackItemHeadline,
+            text: category.fallbackItemText,
+            sourceLabel: category.sourceLabel,
+            sourceUrl: category.sourceUrl,
+          },
+        ],
+      }
+    );
+  });
 }
 
 async function callClaude(dataSummary: string): Promise<BriefingCategory[] | null> {
@@ -173,7 +262,7 @@ async function callClaude(dataSummary: string): Promise<BriefingCategory[] | nul
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 3200,
+    max_tokens: 3800,
     system: buildSystemPrompt(),
     tools: [tool],
     tool_choice: { type: "tool", name: SUBMIT_BRIEFING_TOOL_NAME },
@@ -202,7 +291,19 @@ async function saveBriefing(briefing: MorningBriefing) {
 function isValidBriefing(value: unknown): value is MorningBriefing {
   if (!value || typeof value !== "object") return false;
   const categories = (value as { categories?: unknown }).categories;
-  return Array.isArray(categories) && categories.length === CATEGORY_ORDER.length;
+  if (!Array.isArray(categories) || categories.length !== CATEGORY_ORDER.length) {
+    return false;
+  }
+  // Ältere Formate (Freitext-"fullText" statt "items") sollen ebenfalls
+  // als ungültig gelten, damit sie durch ein frisches Briefing im
+  // aktuellen Format ersetzt werden statt die Story-Ansicht crashen zu
+  // lassen.
+  return categories.every(
+    (category) =>
+      category &&
+      typeof category === "object" &&
+      Array.isArray((category as { items?: unknown }).items),
+  );
 }
 
 export type GenerateBriefingResult =
@@ -211,11 +312,11 @@ export type GenerateBriefingResult =
 
 /**
  * Sammelt Wetter-, News- und Kalenderdaten, lässt Claude daraus ein
- * strukturiertes Morgenbriefing (Teaser + Volltext pro Kategorie)
- * formulieren und speichert das Ergebnis für die spätere Anzeige. Mit
- * `notify: true` (z. B. im Cron-Job) wird zusätzlich eine Push-
- * Benachrichtigung mit dem Wetter-Teaser an alle angemeldeten Geräte
- * verschickt.
+ * strukturiertes Morgenbriefing (Teaser + einzelne Meldungen pro
+ * Kategorie) formulieren und speichert das Ergebnis für die spätere
+ * Anzeige. Mit `notify: true` (z. B. im Cron-Job) wird zusätzlich eine
+ * Push-Benachrichtigung mit dem Wetter-Teaser an alle angemeldeten
+ * Geräte verschickt.
  *
  * Gibt bei einem Fehlschlag die tatsächliche Fehlermeldung mit zurück
  * (nicht nur `null`), damit Aufrufer sie kontrolliert - z. B. nur nach
@@ -269,9 +370,8 @@ export async function generateAndStoreMorningBriefing(
 
 export async function getStoredMorningBriefing(): Promise<MorningBriefing | null> {
   const raw = await readJsonBlob<unknown>(BRIEFING_BLOB_PATH);
-  // Ein älterer Blob im alten Freitext-Format ({text, generatedAt}) wird
-  // hier bewusst wie "noch kein Briefing vorhanden" behandelt, statt zu
-  // crashen - der Aufrufer generiert dann einfach ein frisches Briefing
-  // im neuen Format.
+  // Ein älterer Blob in einem älteren Format wird hier bewusst wie "noch
+  // kein Briefing vorhanden" behandelt, statt zu crashen - der Aufrufer
+  // generiert dann einfach ein frisches Briefing im aktuellen Format.
   return isValidBriefing(raw) ? raw : null;
 }
