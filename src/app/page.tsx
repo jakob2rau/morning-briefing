@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { IconSettings } from "@tabler/icons-react";
 import { auth, signIn, signOut } from "@/auth";
 import {
   generateAndStoreMorningBriefing,
@@ -28,11 +30,18 @@ export default async function Home() {
 
   return (
     <div className="flex flex-1 flex-col items-center gap-8 bg-white px-6 py-16 text-center">
-      <div>
+      <div className="relative w-full max-w-2xl">
+        <Link
+          href="/settings"
+          aria-label="Einstellungen"
+          className="absolute top-0 right-1 flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-zinc-700 transition-colors hover:bg-black/10"
+        >
+          <IconSettings size={18} stroke={1.75} />
+        </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
           Morning Briefing
         </h1>
-        <p className="mt-3 max-w-sm text-base text-zinc-600">
+        <p className="mx-auto mt-3 max-w-sm text-base text-zinc-600">
           Hier entsteht deine tägliche Briefing-App. Füge sie über &quot;Zum
           Home-Bildschirm&quot; deinem iPhone hinzu.
         </p>

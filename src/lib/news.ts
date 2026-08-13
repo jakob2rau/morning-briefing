@@ -1,43 +1,10 @@
 import { XMLParser } from "fast-xml-parser";
+import { NEWS_CATEGORY_ORDER, type NewsCategoryId } from "@/lib/categories";
 
 export type Headline = {
   title: string;
   link: string;
 };
-
-export type NewsSource = {
-  id: string;
-  label: string;
-  feedUrl: string;
-};
-
-export const NEWS_SOURCES: NewsSource[] = [
-  {
-    id: "tech",
-    label: "Technik & Startups",
-    feedUrl: "https://techcrunch.com/feed/",
-  },
-  {
-    id: "wirtschaft",
-    label: "Wirtschaft",
-    feedUrl: "https://www.tagesschau.de/wirtschaft/konjunktur/index~rss2.xml",
-  },
-  {
-    id: "politik",
-    label: "Politik (Deutschland)",
-    feedUrl: "https://www.tagesschau.de/inland/innenpolitik/index~rss2.xml",
-  },
-  {
-    id: "politik-international",
-    label: "Politik (International)",
-    feedUrl: "https://www.tagesschau.de/ausland/index~rss2.xml",
-  },
-  {
-    id: "sport",
-    label: "Sport",
-    feedUrl: "https://www.sportschau.de/index~rss2.xml",
-  },
-];
 
 const parser = new XMLParser({
   ignoreAttributes: true,
@@ -84,12 +51,24 @@ export async function getHeadlines(
   }
 }
 
-export async function getAllNews(limit = 3) {
-  const results = await Promise.all(
-    NEWS_SOURCES.map(async (source) => ({
-      ...source,
-      headlines: await getHeadlines(source.feedUrl, limit),
-    })),
+/**
+ * Ruft für jede der vier News-Kategorien alle in den Einstellungen
+ * konfigurierten Feed-URLs parallel ab und führt ihre Schlagzeilen
+ * zusammen. Ein Feed, der fehlschlägt (falsche URL, Netzwerkfehler, kein
+ * valides RSS), liefert einfach keine Schlagzeilen bei - siehe
+ * `getHeadlines`s eigenes Try-Catch.
+ */
+export async function getAllNews(
+  feedsByCategory: Record<NewsCategoryId, string[]>,
+  limit = 3,
+): Promise<Array<{ id: NewsCategoryId; headlines: Headline[] }>> {
+  return Promise.all(
+    NEWS_CATEGORY_ORDER.map(async (id) => {
+      const urls = feedsByCategory[id] ?? [];
+      const perFeed = await Promise.all(
+        urls.map((url) => getHeadlines(url, limit)),
+      );
+      return { id, headlines: perFeed.flat() };
+    }),
   );
-  return results;
 }

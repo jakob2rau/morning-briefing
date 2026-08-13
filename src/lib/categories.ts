@@ -10,6 +10,10 @@ export type BriefingCategoryId =
   | "politik"
   | "sport";
 
+// Die vier News-basierten Kategorien (alles außer "wetter") - genau die,
+// für die sich in den Einstellungen RSS-Feeds konfigurieren lassen.
+export type NewsCategoryId = Exclude<BriefingCategoryId, "wetter">;
+
 export type CategoryMeta = {
   id: BriefingCategoryId;
   label: string;
@@ -37,6 +41,12 @@ export const CATEGORY_ORDER: readonly BriefingCategoryId[] = [
   "politik",
   "sport",
 ];
+
+// Dieselbe Reihenfolge ohne "wetter" - für die Feed-Einstellungen und den
+// Nachrichten-Abschnitt des Claude-Prompts.
+export const NEWS_CATEGORY_ORDER: readonly NewsCategoryId[] = CATEGORY_ORDER.filter(
+  (id): id is NewsCategoryId => id !== "wetter",
+);
 
 export const CATEGORIES: Record<BriefingCategoryId, CategoryMeta> = {
   wetter: {
@@ -82,9 +92,8 @@ export const CATEGORIES: Record<BriefingCategoryId, CategoryMeta> = {
     label: "Politik",
     contentHint:
       "Politik: genauso wie Tech, 2-3 Einträge in \"items\" - gemischt " +
-      "aus deutscher und internationaler Politik (Quellen \"Politik " +
-      "(Deutschland)\" und \"Politik (International)\"), je nachdem was " +
-      "an dem Tag relevanter ist.",
+      "aus nationaler und internationaler Politik, je nachdem was an " +
+      "dem Tag relevanter ist.",
     fallbackTeaser: "Heute keine Politik-Meldungen.",
     fallbackItemHeadline: "Keine Meldungen",
     fallbackItemText: "Zur Politik gibt es heute keine Meldungen.",

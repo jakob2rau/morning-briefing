@@ -36,14 +36,14 @@ const WEATHER_CODES: Record<number, { description: string; icon: string }> = {
   99: { description: "Schweres Gewitter mit Hagel", icon: "⛈️" },
 };
 
-// Mainz
-const LOCATION = { latitude: 49.9929, longitude: 8.2473 };
-
-export async function getMainzWeather(): Promise<WeatherSummary | null> {
+export async function getWeather(location: {
+  latitude: number;
+  longitude: number;
+}): Promise<WeatherSummary | null> {
   try {
     const params = new URLSearchParams({
-      latitude: String(LOCATION.latitude),
-      longitude: String(LOCATION.longitude),
+      latitude: String(location.latitude),
+      longitude: String(location.longitude),
       current: "temperature_2m,weather_code",
       timezone: "Europe/Berlin",
     });
@@ -64,6 +64,54 @@ export async function getMainzWeather(): Promise<WeatherSummary | null> {
     const info = WEATHER_CODES[code] ?? { description: "Unbekannt", icon: "🌡️" };
 
     return { temperature, description: info.description, icon: info.icon };
+  } catch {
+    return null;
+  }
+}
+
+export type GeocodedCity = {
+  latitude: number;
+  longitude: number;
+  resolvedName: string;
+};
+
+/**
+ * Löst einen Städtenamen (aus den Einstellungen) einmalig zu Koordinaten
+ * auf - über Open-Meteos kostenlose, unauthentifizierte Geocoding-API.
+ * Liefert `null` bei keinem Treffer oder jedem Fehler; der Aufrufer zeigt
+ * dann "Stadt nicht gefunden" statt eines kryptischen Fehlers.
+ */
+export async function geocodeCity(name: string): Promise<GeocodedCity | null> {
+  try {
+    const params = new URLSearchParams({
+      name,
+      count: "1",
+      language: "de",
+      format: "json",
+    });
+
+    const res = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?${params.toString()}`,
+    );
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const first = data?.results?.[0];
+
+    if (
+      !first ||
+      typeof first.latitude !== "number" ||
+      typeof first.longitude !== "number"
+    ) {
+      return null;
+    }
+
+    return {
+      latitude: first.latitude,
+      longitude: first.longitude,
+      resolvedName: String(first.name),
+    };
   } catch {
     return null;
   }

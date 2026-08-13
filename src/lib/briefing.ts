@@ -1,12 +1,14 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { getMainzWeather, type WeatherSummary } from "@/lib/weather";
+import { getWeather, type WeatherSummary } from "@/lib/weather";
 import { getAllNews } from "@/lib/news";
 import { getUpcomingEvents, type CalendarEvent } from "@/lib/calendar";
 import { sendBriefingPushNotification } from "@/lib/push";
 import { readJsonBlob, writeJsonBlob } from "@/lib/blobStore";
+import { getStoredSettings } from "@/lib/settings";
 import {
   CATEGORIES,
   CATEGORY_ORDER,
+  NEWS_CATEGORY_ORDER,
   type BriefingCategoryId,
 } from "@/lib/categories";
 
@@ -54,6 +56,7 @@ function buildDataSummary(
   weather: WeatherSummary | null,
   news: NewsSummary,
   events: CalendarEvent[],
+  cityName: string,
 ) {
   const weatherLine = weather
     ? `${Math.round(weather.temperature)}°C, ${weather.description}`
@@ -63,19 +66,18 @@ function buildDataSummary(
     ? events.map((event) => `- ${formatEventTime(event)}: ${event.title}`).join("\n")
     : "- keine Termine";
 
-  const newsBlock = news
-    .map((source) => {
-      const headlines = source.headlines.length
-        ? source.headlines
-            .map((headline) => `  - ${headline.title} (${headline.link})`)
-            .join("\n")
-        : "  - keine Schlagzeilen verfügbar";
-      return `${source.label}:\n${headlines}`;
-    })
-    .join("\n");
+  const newsBlock = NEWS_CATEGORY_ORDER.map((id) => {
+    const entry = news.find((source) => source.id === id);
+    const headlines = entry?.headlines.length
+      ? entry.headlines
+          .map((headline) => `  - ${headline.title} (${headline.link})`)
+          .join("\n")
+      : "  - keine Schlagzeilen verfügbar";
+    return `${CATEGORIES[id].label}:\n${headlines}`;
+  }).join("\n");
 
   return [
-    `Wetter in Mainz: ${weatherLine}`,
+    `Wetter in ${cityName}: ${weatherLine}`,
     `Termine heute:\n${eventsBlock}`,
     `Nachrichten (Titel und Link):\n${newsBlock}`,
   ].join("\n\n");
@@ -381,13 +383,20 @@ export async function generateAndStoreMorningBriefing(
   accessToken?: string,
   options?: { notify?: boolean },
 ): Promise<GenerateBriefingResult> {
+  const settings = await getStoredSettings();
+
   const [weather, news, events] = await Promise.all([
-    getMainzWeather(),
-    getAllNews(5),
+    getWeather(settings.weather),
+    getAllNews(settings.feeds, 5),
     accessToken ? getUpcomingEvents(accessToken) : Promise.resolve([]),
   ]);
 
-  const dataSummary = buildDataSummary(weather, news, events);
+  const dataSummary = buildDataSummary(
+    weather,
+    news,
+    events,
+    settings.weather.cityName,
+  );
 
   try {
     const categories = await callClaude(dataSummary);
