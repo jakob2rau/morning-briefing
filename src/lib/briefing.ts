@@ -304,7 +304,11 @@ async function callClaude(dataSummary: string): Promise<BriefingCategory[] | nul
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 6500,
+    // Mit der 6. Kategorie ("tag") ist der benötigte Output spürbar
+    // größer geworden - ein echter Lauf ist bereits an 6500 Tokens
+    // gescheitert (stop_reason "max_tokens", dadurch leerer Tool-Input).
+    // Mehr Puffer, um das zuverlässig zu vermeiden.
+    max_tokens: 8192,
     system: buildSystemPrompt(),
     tools: [tool],
     tool_choice: { type: "tool", name: SUBMIT_BRIEFING_TOOL_NAME },
