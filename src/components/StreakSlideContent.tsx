@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { IconSunrise } from "@tabler/icons-react";
 import { markDayDoneAction } from "@/app/actions";
 import { CATEGORY_COLORS } from "@/components/categoryVisuals";
@@ -10,9 +10,36 @@ type Props = {
   alreadyDoneToday: boolean;
 };
 
-// Muss zur CSS-Animationsdauer in globals.css passen (streak-icon-bounce /
-// streak-glow-pulse: 0.7s).
-const ANIMATION_MS = 700;
+// Muss zur längsten CSS-Animationsdauer in globals.css passen
+// (streak-icon-bounce / streak-icon-wobble: 1.7s) plus etwas Puffer.
+const ANIMATION_MS = 1750;
+
+const RAY_COUNT = 8;
+
+// Acht strahlenförmige Rays, die vom Icon-Zentrum nach außen rotieren und
+// dabei ausblasen - der statische Winkel pro Ray wird über die
+// CSS-Custom-Property "--ray-angle" ins gemeinsame Keyframe eingespeist
+// (siehe .animate-streak-ray in globals.css), damit alle Rays dieselbe
+// Animation mit unterschiedlicher Richtung nutzen können.
+function SunRays() {
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+      {Array.from({ length: RAY_COUNT }).map((_, i) => (
+        <span
+          key={i}
+          className="animate-streak-ray absolute top-1/2 left-1/2 h-[3px] w-6 -translate-y-1/2 rounded-full bg-cat-wetter-accent/70"
+          style={
+            {
+              "--ray-angle": `${(360 / RAY_COUNT) * i}deg`,
+              animationDelay: `${i * 35}ms`,
+              transformOrigin: "0% 50%",
+            } as CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+}
 
 // Der interaktive Inhalt der letzten Story-Slide ("Fertig für heute") -
 // die Slide drumherum (CategoryStoryModal) liefert bereits den farbigen
@@ -67,11 +94,16 @@ export default function StreakSlideContent({
   return (
     <div className="flex flex-col items-center gap-4 text-center">
       <span
-        className={`flex h-20 w-20 items-center justify-center rounded-full ${colors.badgeBg} ${
+        className={`relative flex h-20 w-20 items-center justify-center rounded-full ${colors.badgeBg} ${
           animate ? "animate-streak-icon" : ""
         }`}
       >
-        <IconSunrise size={36} stroke={1.75} className={colors.accent} />
+        {animate && <SunRays />}
+        <IconSunrise
+          size={36}
+          stroke={1.75}
+          className={`${colors.accent} ${animate ? "animate-streak-icon-wobble" : ""}`}
+        />
       </span>
       <p className="text-base text-zinc-700">
         <span
