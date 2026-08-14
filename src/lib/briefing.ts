@@ -353,12 +353,16 @@ async function callClaude(dataSummary: string): Promise<BriefingCategory[] | nul
 
   if (rawCategoriesLength === 0) {
     // Tool wurde aufgerufen, aber ohne verwertbare "categories" - z. B.
-    // wenn Claude aus irgendeinem Grund ein leeres Array liefert. Landet
-    // sonst unsichtbar als lauter Platzhalter-Kategorien im Ergebnis.
+    // wenn Claude aus irgendeinem Grund ein leeres Array liefert. Als
+    // Fehlschlag behandeln (wie ein fehlender Tool-Call) statt normalizeCategories()
+    // brav alle 6 Kategorien mit Platzhaltertext füllen zu lassen - sonst
+    // überschreibt so ein Ausrutscher ein vorheriges, gutes Briefing
+    // unsichtbar mit "keine Infos vorhanden" in jeder Karte.
     console.error(
       "callClaude: Tool-Input enthält keine categories",
       JSON.stringify(toolUse.input).slice(0, 500),
     );
+    return null;
   }
 
   return normalizeCategories(toolUse.input);

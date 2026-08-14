@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import {
   generateAndStoreMorningBriefing,
@@ -71,6 +72,11 @@ async function regenerate() {
       { status: 502 },
     );
   }
+
+  // Wie beim manuellen "Neu erstellen" (siehe actions.ts) - stellt sicher,
+  // dass ein Seitenaufruf direkt nach dem Cron-Lauf nicht noch eine
+  // gecachte Version von "/" bekommt.
+  revalidatePath("/");
 
   return NextResponse.json(result.briefing);
 }
