@@ -37,6 +37,22 @@
   --cat-tag-bg: #eef2f6;
   --cat-tag-badge: #dbe4ed;
   --cat-tag-accent: #475569;
+
+  /* Pastellfarben für die Ideen-Kategorien im Bereich "Aufgaben & Ideen"
+     (siehe src/components/ideaVisuals.ts) - eigene Tokens statt
+     Wiederverwendung der Briefing-Kategorie-Farben, damit beide Bereiche
+     unabhängig voneinander bleiben. */
+  --cat-idea-app-bg: #f1ebff;
+  --cat-idea-app-badge: #e1d3ff;
+  --cat-idea-app-accent: #7c3aed;
+
+  --cat-idea-geschenk-bg: #ffe8f3;
+  --cat-idea-geschenk-badge: #ffc9e3;
+  --cat-idea-geschenk-accent: #be185d;
+
+  --cat-idea-sonstiges-bg: #eef2f6;
+  --cat-idea-sonstiges-badge: #dbe4ed;
+  --cat-idea-sonstiges-accent: #475569;
 }
 
 @theme inline {
@@ -63,6 +79,16 @@
   --color-cat-tag-bg: var(--cat-tag-bg);
   --color-cat-tag-badge: var(--cat-tag-badge);
   --color-cat-tag-accent: var(--cat-tag-accent);
+
+  --color-cat-idea-app-bg: var(--cat-idea-app-bg);
+  --color-cat-idea-app-badge: var(--cat-idea-app-badge);
+  --color-cat-idea-app-accent: var(--cat-idea-app-accent);
+  --color-cat-idea-geschenk-bg: var(--cat-idea-geschenk-bg);
+  --color-cat-idea-geschenk-badge: var(--cat-idea-geschenk-badge);
+  --color-cat-idea-geschenk-accent: var(--cat-idea-geschenk-accent);
+  --color-cat-idea-sonstiges-bg: var(--cat-idea-sonstiges-bg);
+  --color-cat-idea-sonstiges-badge: var(--cat-idea-sonstiges-badge);
+  --color-cat-idea-sonstiges-accent: var(--cat-idea-sonstiges-accent);
 }
 
 body {
