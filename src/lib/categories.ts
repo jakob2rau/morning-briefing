@@ -88,7 +88,7 @@ export const CATEGORIES: Record<BriefingCategoryId, CategoryMeta> = {
     fallbackItemHeadline: "Keine Meldungen",
     fallbackItemText: "Zur Wirtschaft gibt es heute keine Meldungen.",
     sourceLabel: "tagesschau.de – Wirtschaft",
-    sourceUrl: "https://www.tagesschau.de/wirtschaft/konjunktur/",
+    sourceUrl: "https://www.tagesschau.de/wirtschaft/",
   },
   politik: {
     id: "politik",

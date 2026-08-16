@@ -26,9 +26,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   weather: { cityName: "Mainz", latitude: 49.9929, longitude: 8.2473 },
   feeds: {
     tech: ["https://techcrunch.com/feed/"],
-    wirtschaft: [
-      "https://www.tagesschau.de/wirtschaft/konjunktur/index~rss2.xml",
-    ],
+    // Der Konjunktur-Unterfeed aktualisiert sich nur alle paar Tage -
+    // dadurch wirkten neu erstellte Briefings hier "veraltet" (dieselben
+    // Meldungen wie tags zuvor), während die anderen Kategorien mit
+    // breiteren Feeds echte News lieferten. Der allgemeine Wirtschafts-Feed
+    // bekommt mehrmals täglich neue Artikel.
+    wirtschaft: ["https://www.tagesschau.de/wirtschaft/index~rss2.xml"],
     politik: [
       "https://www.tagesschau.de/inland/innenpolitik/index~rss2.xml",
       "https://www.tagesschau.de/ausland/index~rss2.xml",
