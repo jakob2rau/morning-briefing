@@ -44,6 +44,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Standardseite - proxy.ts leitet nicht angemeldete Besucher genau
     // hierher um.
     signIn: "/signin",
+    // Ohne diese Zeile landet man bei einem OAuth-Fehler (z. B. wenn
+    // Google beim Zurückkommen einen Callback-Parameter nicht liefert)
+    // auf NextAuth's eigener, unbekannter /api/auth/error-Seite statt auf
+    // unserer eigenen - /signin zeigt den Fehler stattdessen selbst an
+    // (siehe ?error= in signin/page.tsx) und bietet direkt den
+    // "Erneut versuchen"-Button.
+    error: "/signin",
   },
   providers: [
     Google({
