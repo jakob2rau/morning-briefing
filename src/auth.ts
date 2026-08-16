@@ -88,10 +88,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return profile?.email?.toLowerCase() === allowedEmail;
     },
     async jwt({ token, account }) {
-      // Erstanmeldung: Tokens aus dem Google-Account übernehmen
+      // Erstanmeldung: Tokens aus dem Google-Account übernehmen. Bewusst
+      // NICHT einfach "...token" übernehmen - next-auth befüllt token.name/
+      // token.picture standardmäßig aus dem Google-Profil, und Googles
+      // Profilbild-URLs sind oft 100+ Zeichen lang. Zusammen mit
+      // Access-/Refresh-Token sprengt das leicht die 4KB-Cookie-Grenze;
+      // next-auth splittet dann zwar automatisch auf mehrere Cookies auf,
+      // aber die Summe aller Cookies in einem Request kann dadurch an
+      // Header-Größenlimits (Vercel-Edge, manche Browser/Netzwerke)
+      // stoßen. Wir zeigen Name/Bild nirgends an, also raus damit -
+      // nur E-Mail (für die Anzeige in den Einstellungen) bleibt.
       if (account) {
         return {
-          ...token,
+          sub: token.sub,
+          email: token.email,
           accessToken: account.access_token,
           accessTokenExpires: account.expires_at
             ? account.expires_at * 1000
