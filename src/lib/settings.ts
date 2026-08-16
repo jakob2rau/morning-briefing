@@ -16,6 +16,10 @@ export type AppSettings = {
   weather: WeatherLocation;
   feeds: Record<NewsCategoryId, string[]>;
   specialEvents: SpecialEvent[];
+  // Kurzer Chime im Streak-Moment ("Fertig für heute") - siehe
+  // src/lib/chime.ts. Default an, damit bestehende Blobs ohne dieses Feld
+  // (siehe normalizeSettings) sich wie bisher plus Sound verhalten.
+  soundEffects: boolean;
 };
 
 const SETTINGS_BLOB_PATH = "app-settings.json";
@@ -39,6 +43,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     sport: ["https://www.sportschau.de/index~rss2.xml"],
   },
   specialEvents: [],
+  soundEffects: true,
 };
 
 function isValidUrl(value: unknown): value is string {
@@ -124,7 +129,12 @@ export function normalizeSettings(value: unknown): AppSettings {
 
   const specialEvents = normalizeSpecialEvents(raw.specialEvents);
 
-  return { weather, feeds, specialEvents };
+  const soundEffects =
+    typeof raw.soundEffects === "boolean"
+      ? raw.soundEffects
+      : DEFAULT_SETTINGS.soundEffects;
+
+  return { weather, feeds, specialEvents, soundEffects };
 }
 
 /**

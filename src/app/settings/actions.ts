@@ -9,6 +9,7 @@ export type SaveSettingsInput = {
   cityName: string;
   feeds: Record<NewsCategoryId, string[]>;
   specialEvents: { name: string; date: string }[];
+  soundEffects: boolean;
 };
 
 export type SaveSettingsResult = { error: string | null };
@@ -70,6 +71,7 @@ export async function saveSettingsAction(
     },
     feeds,
     specialEvents,
+    soundEffects: input.soundEffects,
   };
 
   try {

@@ -13,6 +13,7 @@ type Props = {
   categories: BriefingCategory[];
   weather: WeatherSummary | null;
   streak: { count: number; alreadyDoneToday: boolean };
+  soundEffects: boolean;
   initialIndex: number;
   onClose: () => void;
 };
@@ -21,6 +22,7 @@ export default function CategoryStoryModal({
   categories,
   weather,
   streak,
+  soundEffects,
   initialIndex,
   onClose,
 }: Props) {
@@ -229,6 +231,7 @@ export default function CategoryStoryModal({
             <StreakSlideContent
               initialCount={streak.count}
               alreadyDoneToday={streak.alreadyDoneToday}
+              soundEffects={soundEffects}
             />
           </div>
         </section>

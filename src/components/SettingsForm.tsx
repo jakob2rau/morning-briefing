@@ -26,6 +26,9 @@ export default function SettingsForm({ initialSettings }: Props) {
   const [specialEvents, setSpecialEvents] = useState<
     { name: string; date: string }[]
   >(initialSettings.specialEvents);
+  const [soundEffects, setSoundEffects] = useState(
+    initialSettings.soundEffects,
+  );
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -80,6 +83,7 @@ export default function SettingsForm({ initialSettings }: Props) {
           specialEvents: specialEvents
             .map((event) => ({ name: event.name.trim(), date: event.date }))
             .filter((event) => event.name && event.date),
+          soundEffects,
         });
 
         if (result.error) setError(result.error);
@@ -214,6 +218,34 @@ export default function SettingsForm({ initialSettings }: Props) {
         >
           <IconPlus size={14} stroke={1.75} /> Ereignis hinzufügen
         </button>
+      </section>
+
+      <section className="rounded-3xl bg-zinc-50 p-6 shadow-sm shadow-zinc-200/60">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-zinc-900">Soundeffekte</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              Kurzer Chime beim Abschließen des Tages (&quot;Fertig für
+              heute&quot;).
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={soundEffects}
+            aria-label="Soundeffekte"
+            onClick={() => setSoundEffects((current) => !current)}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+              soundEffects ? "bg-zinc-900" : "bg-zinc-300"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                soundEffects ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
       </section>
 
       <div>

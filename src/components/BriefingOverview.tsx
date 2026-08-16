@@ -11,9 +11,15 @@ type Props = {
   categories: BriefingCategory[];
   weather: WeatherSummary | null;
   streak: { count: number; alreadyDoneToday: boolean };
+  soundEffects: boolean;
 };
 
-export default function BriefingOverview({ categories, weather, streak }: Props) {
+export default function BriefingOverview({
+  categories,
+  weather,
+  streak,
+  soundEffects,
+}: Props) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   if (categories.length === 0) return null;
@@ -56,6 +62,7 @@ export default function BriefingOverview({ categories, weather, streak }: Props)
           categories={categories}
           weather={weather}
           streak={streak}
+          soundEffects={soundEffects}
           initialIndex={openIndex}
           onClose={() => setOpenIndex(null)}
         />

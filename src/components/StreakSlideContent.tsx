@@ -4,10 +4,12 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { IconSunrise } from "@tabler/icons-react";
 import { markDayDoneAction } from "@/app/actions";
 import { CATEGORY_COLORS } from "@/components/categoryVisuals";
+import { playStreakChime } from "@/lib/chime";
 
 type Props = {
   initialCount: number;
   alreadyDoneToday: boolean;
+  soundEffects: boolean;
 };
 
 // Muss zur längsten CSS-Animationsdauer in globals.css passen
@@ -48,6 +50,7 @@ function SunRays() {
 export default function StreakSlideContent({
   initialCount,
   alreadyDoneToday,
+  soundEffects,
 }: Props) {
   const [count, setCount] = useState(initialCount);
   const [done, setDone] = useState(alreadyDoneToday);
@@ -77,6 +80,10 @@ export default function StreakSlideContent({
       setCount(result.streak.count);
       setDone(true);
       setAnimate(true);
+      // Chime startet zusammen mit der Sonnenaufgangs-Animation (Rays +
+      // Icon-Wobble + Zahl-Pop) - direkt aus diesem Klick-Handler heraus,
+      // damit der Browser den AudioContext ohne Zusatz-Interaktion startet.
+      if (soundEffects) playStreakChime();
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => setAnimate(false), ANIMATION_MS);
     } catch (err) {

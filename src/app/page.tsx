@@ -87,6 +87,7 @@ export default async function Home() {
               categories={briefing.categories}
               weather={briefing.weather}
               streak={{ count: streak.count, alreadyDoneToday: isDoneToday(streak) }}
+              soundEffects={settings.soundEffects}
             />
           ) : (
             <p className="rounded-3xl bg-zinc-50 p-6 text-sm text-zinc-500">
