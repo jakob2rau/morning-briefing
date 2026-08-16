@@ -11,7 +11,7 @@ import { getStreak, isDoneToday } from "@/lib/streak";
 import { getUpcomingEventCountdowns } from "@/lib/specialEvents";
 import { getUpcomingEvents, getTodaysEvents } from "@/lib/calendar";
 import { getTasks } from "@/lib/tasks";
-import { getIdeas } from "@/lib/ideas";
+import { getIdeas } from "@/lib/ideaStore";
 import BriefingOverview from "@/components/BriefingOverview";
 import RegenerateBriefingButton from "@/components/RegenerateBriefingButton";
 import SpecialEventCountdowns from "@/components/SpecialEventCountdowns";

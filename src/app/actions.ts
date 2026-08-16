@@ -12,13 +12,8 @@ import {
   archiveDoneTasks,
   type Task,
 } from "@/lib/tasks";
-import {
-  addIdea,
-  deleteIdea,
-  suggestStepsForIdea,
-  type Idea,
-  type IdeaCategory,
-} from "@/lib/ideas";
+import type { Idea, IdeaCategory } from "@/lib/ideas";
+import { addIdea, deleteIdea, suggestStepsForIdea } from "@/lib/ideaStore";
 
 // Jede Aktion hier prüft zuerst requireSession() - zusätzlich zu proxy.ts
 // (Defense-in-Depth, siehe Kommentar dort und in lib/authGuard.ts). Ohne
