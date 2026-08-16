@@ -54,6 +54,12 @@ export async function getUpcomingEvents(
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         cache: "no-store",
+        // Ohne Timeout hängt ein langsames/nicht antwortendes Google-API
+        // die komplette Seite auf, bis die Vercel-Function-Zeitgrenze
+        // greift (kein HTTP-Response mehr -> "This page couldn't load")
+        // - lieber schnell und sichtbar mit leerer Terminliste
+        // fehlschlagen (siehe catch unten).
+        signal: AbortSignal.timeout(6000),
       },
     );
 

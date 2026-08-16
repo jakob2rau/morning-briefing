@@ -20,6 +20,12 @@ import StreakBadge from "@/components/StreakBadge";
 import HomeTabs from "@/components/HomeTabs";
 import TasksIdeasSection from "@/components/TasksIdeasSection";
 
+// Mehr Zeit als das Plattform-Default (u. a. für die Server Actions auf
+// dieser Seite, siehe app/actions.ts) - ein Briefing neu erstellen ruft
+// Claude mit bis zu 8192 Tokens auf, das kann allein schon einige
+// Sekunden dauern, plus Kalender-/Blob-Zugriffe obendrauf.
+export const maxDuration = 30;
+
 function formatTimestamp(iso: string) {
   return new Date(iso).toLocaleString("de-DE", {
     day: "2-digit",

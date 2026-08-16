@@ -19,6 +19,13 @@ async function refreshAccessToken(token: {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: params,
+      // Läuft bei JEDER Anfrage einer gesperrten Seite/Route innerhalb von
+      // proxy.ts, sobald das Access-Token abgelaufen ist (siehe jwt()
+      // oben). Ohne Timeout hängt ein langsames/nicht antwortendes
+      // Google-Token-Endpoint sonst die komplette App auf, bis proxy.ts'
+      // eigene Zeitgrenze greift - kein HTTP-Response mehr, "This page
+      // couldn't load" bei praktisch jeder Anfrage.
+      signal: AbortSignal.timeout(6000),
     });
 
     const refreshed = await response.json();
