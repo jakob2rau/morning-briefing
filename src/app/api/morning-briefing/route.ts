@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { requireSession } from "@/lib/authGuard";
 import {
   generateAndStoreMorningBriefing,
   getStoredMorningBriefing,
@@ -21,9 +22,19 @@ function isAuthorized(request: NextRequest) {
 // neues Briefing erstellt und gespeichert - Vercel Cron Jobs rufen ihre
 // Route immer per GET auf, daher übernimmt GET hier zusätzlich die Rolle
 // des geplanten Trigger.
+//
+// Diese Route ist bewusst von proxy.ts ausgenommen (der Cron-Job hat
+// keine Browser-Session), schützt sich also selbst: der Cron-Pfad über
+// CRON_SECRET oben, der "normale" Lesepfad hier unten über eine eigene
+// Session-Prüfung - ohne die wäre das gespeicherte Briefing sonst
+// öffentlich abrufbar gewesen.
 export async function GET(request: NextRequest) {
   if (isAuthorized(request)) {
     return regenerate();
+  }
+
+  if (!(await requireSession())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const briefing = await getStoredMorningBriefing();

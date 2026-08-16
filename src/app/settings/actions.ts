@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireSession } from "@/lib/authGuard";
 import { geocodeCity } from "@/lib/weather";
 import { saveSettings, type AppSettings } from "@/lib/settings";
 import { NEWS_CATEGORY_ORDER, type NewsCategoryId } from "@/lib/categories";
@@ -40,6 +41,11 @@ function isValidIsoDate(value: string) {
 export async function saveSettingsAction(
   input: SaveSettingsInput,
 ): Promise<SaveSettingsResult> {
+  // Zusätzlich zu proxy.ts (Defense-in-Depth, siehe lib/authGuard.ts).
+  if (!(await requireSession())) {
+    return { error: "Nicht angemeldet." };
+  }
+
   const cityName = input.cityName.trim();
   if (!cityName) {
     return { error: "Bitte gib eine Stadt an." };

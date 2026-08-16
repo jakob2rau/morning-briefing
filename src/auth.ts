@@ -39,6 +39,12 @@ async function refreshAccessToken(token: {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
+  pages: {
+    // Eigene, zum Design passende Login-Seite statt NextAuth's generischer
+    // Standardseite - proxy.ts leitet nicht angemeldete Besucher genau
+    // hierher um.
+    signIn: "/signin",
+  },
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -54,6 +60,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    // Diese App ist für genau einen Google-Account gedacht - jede andere
+    // E-Mail wird beim Login abgelehnt (kein Account wird angelegt, keine
+    // Session entsteht), egal wie gültig das Google-Konto sonst ist.
+    // ALLOWED_GOOGLE_EMAIL fehlt absichtlich kein Fallback: ohne gesetzte
+    // Env-Var schlägt JEDER Login fehl (fail closed statt offen).
+    async signIn({ profile }) {
+      const allowedEmail = process.env.ALLOWED_GOOGLE_EMAIL?.trim().toLowerCase();
+      if (!allowedEmail) {
+        console.error("ALLOWED_GOOGLE_EMAIL ist nicht gesetzt - Login wird verweigert.");
+        return false;
+      }
+      return profile?.email?.toLowerCase() === allowedEmail;
+    },
     async jwt({ token, account }) {
       // Erstanmeldung: Tokens aus dem Google-Account übernehmen
       if (account) {

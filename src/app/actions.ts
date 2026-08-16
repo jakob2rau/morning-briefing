@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
+import { requireSession } from "@/lib/authGuard";
 import { generateAndStoreMorningBriefing } from "@/lib/briefing";
 import { markDoneToday, type StreakData } from "@/lib/streak";
 import {
@@ -20,11 +20,19 @@ import {
   type IdeaCategory,
 } from "@/lib/ideas";
 
+// Jede Aktion hier prüft zuerst requireSession() - zusätzlich zu proxy.ts
+// (Defense-in-Depth, siehe Kommentar dort und in lib/authGuard.ts). Ohne
+// gültige Session passiert nichts, es wird nur der generische
+// "Nicht angemeldet"-Fehler zurückgegeben.
+const NOT_SIGNED_IN_ERROR = "Nicht angemeldet.";
+
 export type RegenerateResult = { error: string | null };
 
 export async function regenerateBriefing(): Promise<RegenerateResult> {
-  const session = await auth();
-  const result = await generateAndStoreMorningBriefing(session?.accessToken);
+  const session = await requireSession();
+  if (!session) return { error: NOT_SIGNED_IN_ERROR };
+
+  const result = await generateAndStoreMorningBriefing(session.accessToken);
 
   if (!result.briefing) {
     // Absichtlich die generische Meldung hier - der konkrete Fehlertext
@@ -50,6 +58,10 @@ export type MarkDayDoneResult =
  * Erhöhung bei mehrfachem Klick am selben Tag).
  */
 export async function markDayDoneAction(): Promise<MarkDayDoneResult> {
+  if (!(await requireSession())) {
+    return { streak: null, error: NOT_SIGNED_IN_ERROR };
+  }
+
   try {
     const streak = await markDoneToday();
     revalidatePath("/");
@@ -86,6 +98,10 @@ export type StepsResult =
   | { steps: null; error: string };
 
 export async function addTaskAction(text: string): Promise<TasksResult> {
+  if (!(await requireSession())) {
+    return { tasks: null, error: NOT_SIGNED_IN_ERROR };
+  }
+
   try {
     const tasks = await addTask(text);
     revalidatePath("/");
@@ -97,6 +113,10 @@ export async function addTaskAction(text: string): Promise<TasksResult> {
 }
 
 export async function toggleTaskAction(id: string): Promise<TasksResult> {
+  if (!(await requireSession())) {
+    return { tasks: null, error: NOT_SIGNED_IN_ERROR };
+  }
+
   try {
     const tasks = await toggleTask(id);
     revalidatePath("/");
@@ -108,6 +128,10 @@ export async function toggleTaskAction(id: string): Promise<TasksResult> {
 }
 
 export async function deleteTaskAction(id: string): Promise<TasksResult> {
+  if (!(await requireSession())) {
+    return { tasks: null, error: NOT_SIGNED_IN_ERROR };
+  }
+
   try {
     const tasks = await deleteTask(id);
     revalidatePath("/");
@@ -119,6 +143,10 @@ export async function deleteTaskAction(id: string): Promise<TasksResult> {
 }
 
 export async function archiveDoneTasksAction(): Promise<TasksResult> {
+  if (!(await requireSession())) {
+    return { tasks: null, error: NOT_SIGNED_IN_ERROR };
+  }
+
   try {
     const tasks = await archiveDoneTasks();
     revalidatePath("/");
@@ -133,6 +161,10 @@ export async function addIdeaAction(
   text: string,
   category: IdeaCategory,
 ): Promise<IdeasResult> {
+  if (!(await requireSession())) {
+    return { ideas: null, error: NOT_SIGNED_IN_ERROR };
+  }
+
   try {
     const ideas = await addIdea(text, category);
     revalidatePath("/");
@@ -144,6 +176,10 @@ export async function addIdeaAction(
 }
 
 export async function deleteIdeaAction(id: string): Promise<IdeasResult> {
+  if (!(await requireSession())) {
+    return { ideas: null, error: NOT_SIGNED_IN_ERROR };
+  }
+
   try {
     const ideas = await deleteIdea(id);
     revalidatePath("/");
@@ -164,6 +200,10 @@ export async function deleteIdeaAction(id: string): Promise<IdeasResult> {
 export async function suggestIdeaStepsAction(
   ideaText: string,
 ): Promise<StepsResult> {
+  if (!(await requireSession())) {
+    return { steps: null, error: NOT_SIGNED_IN_ERROR };
+  }
+
   const trimmed = ideaText.trim();
   if (!trimmed) {
     return { steps: null, error: "Die Idee ist leer." };
@@ -182,6 +222,10 @@ export async function suggestIdeaStepsAction(
 export async function confirmIdeaStepsAction(
   steps: string[],
 ): Promise<TasksResult> {
+  if (!(await requireSession())) {
+    return { tasks: null, error: NOT_SIGNED_IN_ERROR };
+  }
+
   try {
     const tasks = await addTasksBulk(steps);
     revalidatePath("/");

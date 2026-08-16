@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { IconArrowLeft } from "@tabler/icons-react";
-import { auth, signIn, signOut } from "@/auth";
+import { auth, signOut } from "@/auth";
 import { getStoredSettings } from "@/lib/settings";
 import SettingsForm from "@/components/SettingsForm";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
@@ -12,6 +13,11 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const [session, settings] = await Promise.all([auth(), getStoredSettings()]);
+  // Zusätzlich zu proxy.ts (Defense-in-Depth, siehe dortigen Kommentar
+  // und lib/authGuard.ts) - deshalb ist unten auch keine "nicht
+  // angemeldet"-Verzweigung mehr nötig, diese Seite ist nie ohne Session
+  // erreichbar.
+  if (!session?.user) redirect("/signin");
 
   return (
     <div className="flex flex-1 flex-col items-center gap-8 bg-white px-6 py-16 text-center">
@@ -35,49 +41,29 @@ export default async function SettingsPage() {
         <SettingsForm initialSettings={settings} />
       </div>
 
-      {/* Von der Startseite hierher verschoben (unverändert). */}
+      {/* Von der Startseite hierher verschoben. Login ist inzwischen für
+          die ganze App Pflicht (siehe proxy.ts) - hier gibt es deshalb nur
+          noch die Abmelden-Option, kein "nicht angemeldet"-Zweig mehr. */}
       <div className="w-full max-w-2xl rounded-3xl bg-zinc-50 p-6 text-left shadow-sm shadow-zinc-200/60">
-        {!session ? (
-          <>
-            <p className="text-sm text-zinc-600">
-              Melde dich mit Google an, damit deine Kalendertermine ins
-              Briefing einfließen.
-            </p>
-            <form
-              action={async () => {
-                "use server";
-                await signIn("google");
-              }}
-              className="mt-3"
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-zinc-600">
+            Angemeldet als {session.user?.email ?? "dein Google-Account"} –
+            Termine fließen ins Briefing ein.
+          </p>
+          <form
+            action={async () => {
+              "use server";
+              await signOut({ redirectTo: "/signin" });
+            }}
+          >
+            <button
+              type="submit"
+              className="text-xs text-zinc-500 hover:underline"
             >
-              <button
-                type="submit"
-                className="flex h-10 w-full items-center justify-center rounded-full bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
-              >
-                Mit Google anmelden
-              </button>
-            </form>
-          </>
-        ) : (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-zinc-600">
-              Mit Google angemeldet – Termine fließen ins Briefing ein.
-            </p>
-            <form
-              action={async () => {
-                "use server";
-                await signOut();
-              }}
-            >
-              <button
-                type="submit"
-                className="text-xs text-zinc-500 hover:underline"
-              >
-                Abmelden
-              </button>
-            </form>
-          </div>
-        )}
+              Abmelden
+            </button>
+          </form>
+        </div>
       </div>
 
       <div className="w-full max-w-2xl rounded-3xl bg-zinc-50 p-6 text-left shadow-sm shadow-zinc-200/60">

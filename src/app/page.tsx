@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { IconSettings } from "@tabler/icons-react";
 import { auth } from "@/auth";
 import {
@@ -31,6 +32,11 @@ function formatTimestamp(iso: string) {
 
 export default async function Home() {
   const session = await auth();
+  // Zusätzlich zu proxy.ts (Defense-in-Depth, siehe dortigen Kommentar
+  // und lib/authGuard.ts) - proxy.ts deckt diese Seite bereits ab, aber
+  // Next.js empfiehlt ausdrücklich, sich nicht allein darauf zu
+  // verlassen.
+  if (!session?.user) redirect("/signin");
 
   let briefing = await getStoredMorningBriefing();
   if (!briefing) {
